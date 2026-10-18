@@ -16,7 +16,8 @@ boost, spectrogram pixels); `Sources/AudioDebugger/` is the app. A plain SwiftPM
 | `just selftest [seconds] [mic]` | builds, opens the app hidden and **muted**, captures for `seconds`, scripts replay → pause → seek → toggles → restart, prints the log. `just selftest 6 MacBook` picks the built-in mic |
 | `just run` | release build wrapped into `build/Audio Debugger.app`, signed with the Apple Development identity, opened |
 | `just live-install` | symlinks `/Applications/Audio Debugger.app` to the build |
-| `just logs` | streams the app's log |
+| `just screenshots [mic]` | the README's `docs/live.png` and `docs/replay.png`: the app in the background (no focus taken), muted, ~15 s, captured with `screencapture -l` |
+| `just logs` / `just session-log` | the app's os log, streamed / the newest session log (JSON Lines, everything the app saw and did) |
 
 - **Builds with the Command Line Tools, not Xcode.** No `@State` (its macro plugin ships only with Xcode): the model
   is an `@Observable` class held by the `App`, and views bind through `Binding(get:set:)`.
@@ -36,6 +37,16 @@ boost, spectrogram pixels); `Sources/AudioDebugger/` is the app. A plain SwiftPM
 | replay | `Player` | its own `AVAudioEngine` on the default output, an `AVAudioSourceNode` pulling the clip through `Transport` on the render thread; mono into the main mixer feeds both ears. Pause, seek and processing swaps are state changes |
 | processing | `AudioCore/Processing` | off the main thread, cached per toggle combination: `denoise` (spectral gating, profile from the quietest 20 % of frames inside the clip) and `voiceBoost` (90 Hz–7.5 kHz band, loud-frame leveling to -16 dBFS, tanh soft limit) |
 
+## Bug reports (BugKit)
+
+[idvorkin/bug-kit](https://github.com/idvorkin/bug-kit), pinned `exact:` in Package.swift. ⌘I saves a report
+(note, mic readings, replay state, the session log and the last 20 s the mic heard as a WAV) under
+`~/Library/Application Support/AudioDebugger/` (`bugs.jsonl`, `bugs/<time>/`); crashes land in `crashes/`. The
+bug-kit listener reads that root as a local Mac app (`mac_dir` in `~/.config/bug-kit/apps.json`, entry
+`audio-debugger`) and files each report as a bead here. Scripted runs (`--selftest`, `--screenshots`) write to
+`AudioDebugger/selftest/` instead, so they are never filed. ⇧⌘N is What's new (commits by story, bundled by
+`just app`); Settings (⌘,) has BugKit's About. A bug in BugKit code is fixed in bug-kit, not here.
+
 ## Rules
 
 - **Every feature or behaviour change updates the user stories** (`docs/stories/`) in the same commit: Cohn use
@@ -48,7 +59,7 @@ boost, spectrogram pixels); `Sources/AudioDebugger/` is the app. A plain SwiftPM
   silent (digital zeros) and dropped off the bus by itself. Compare against `just selftest 6 MacBook`.
 - **Keyboard first.** Every action has a key (see `Keys` and the stories); the mouse is never required.
 - **Edit files with the Read, Edit and Write tools**, not sed or Python in the shell. Never `git add -A`.
-- **Audio stays on this Mac.** Nothing is uploaded or saved to disk.
+- **Audio stays on this Mac.** Nothing is uploaded; the only audio written to disk is a bug report's WAV.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:1105d646 -->
 ## Beads Issue Tracker
