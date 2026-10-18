@@ -90,7 +90,12 @@ screenshots mic="MacBook": app _quit-app
 
 # The session log (JSON Lines) of the newest launch: everything the app saw and did.
 session-log:
-    @ls -t "$HOME/Library/Application Support/AudioDebugger/logs/"*.jsonl | head -1 | xargs cat | jq -c .
+    #!/usr/bin/env bash
+    set -uo pipefail
+    # Quoted: the path has a space ("Application Support"), which split an unquoted `xargs cat` in two.
+    f="$(\ls -t "$HOME/Library/Application Support/AudioDebugger/logs/"*.jsonl 2>/dev/null | head -1)"
+    [ -n "$f" ] || { echo "no session logs yet (just run first)"; exit 1; }
+    jq -c . "$f"
 
 # Stream the app's log (mics, levels, replay, processing).
 logs:

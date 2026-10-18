@@ -155,6 +155,27 @@ func pitchOfQuietSines(freq: Float) {
     #expect(abs(decibels(rms(y[24_000...])) - -16) < 1.5)
 }
 
+// One second of speech in twenty of hiss (Codex review): the speech, not the hiss, is brought to the target.
+@Test func voiceBoostLevelsBriefSpeechNotTheBackground() {
+    let rate: Float = 48_000
+    var x = noise(20 * 48_000, amplitude: 0.002)
+    let speech = sine(300, amplitude: 0.02, count: 48_000)
+    for i in 0..<48_000 { x[5 * 48_000 + i] += speech[i] }
+    let y = voiceBoost(x, sampleRate: rate)
+    let speechDB = decibels(rms(y[(5 * 48_000 + 4_800)..<(6 * 48_000 - 4_800)]))
+    let hissDB = decibels(rms(y[(10 * 48_000)...]))
+    #expect(abs(speechDB - -16) < 2)
+    #expect(speechDB - hissDB > 15)
+}
+
+// Recorded digital silence (a dropout) must not become the noise profile and let the hiss through.
+@Test func denoiseIgnoresDigitalSilenceInTheProfile() {
+    var x = noise(4 * 48_000, amplitude: 0.003)
+    for i in 0..<(48_000) { x[i] = 0 }  // the first second is a dropout
+    let y = denoise(x)
+    #expect(decibels(rms(y[(2 * 48_000)...])) < decibels(rms(x[(2 * 48_000)...])) - 10)
+}
+
 @Test func voiceBoostCutsRumble() {
     let mix = zip(sine(30, amplitude: 0.1, count: 48_000), sine(300, amplitude: 0.1, count: 48_000)).map { $0 + $1 }
     let y = voiceBoost(mix, sampleRate: 48_000)

@@ -83,6 +83,8 @@ final class AppModel {
     private var timer: Timer?
     private var lastLevelLog = Date.distantPast
     private var lastReopen = Date.distantPast
+    /// Mics that failed to open since the device list last changed: skipped when falling back.
+    private var failed: Set<String> = []
     private var processGeneration = 0
 
     init() {
@@ -100,17 +102,7 @@ final class AppModel {
     }
 
     func start() {
-        capture.onFailure = { [weak self] in
-            guard let self else { return }
-            // At most one reopen every 2 s, so a mic that keeps failing can never loop.
-            guard Date().timeIntervalSince(self.lastReopen) > 2 else {
-                Log.mic.error("capture failed again within 2 s of a reopen; leaving it")
-                return
-            }
-            self.lastReopen = Date()
-            Log.mic.info("capture failed; reopening the mic")
-            self.reopenMic()
-        }
+        capture.onFailure = { [weak self] in self?.captureFailed() }
         Mics.onChange { [weak self] in self?.micsChanged() }
         AVCaptureDevice.requestAccess(for: .audio) { granted in
             Task { @MainActor [weak self] in
@@ -134,24 +126,36 @@ final class AppModel {
     /// The device list changed (or first load): reopen the wanted mic when it is back, fall back when it left.
     private func micsChanged() {
         mics = Mics.all()
+        failed = []  // a device change is a new chance for every mic
         Log.mic.info("mics: \(self.mics.map(\.name).joined(separator: ", "), privacy: .public)")
         SessionLog.shared.event("mics", ["names": mics.map(\.name)])
         let named = Launch.micName.flatMap { n in mics.first { $0.name.localizedCaseInsensitiveContains(n) }?.uid }
         let wanted = named ?? UserDefaults.standard.string(forKey: Key.mic)
-        guard let pick = Mics.choose(from: mics, wanted: wanted) else {
-            capture.stop()
-            mic = nil
-            micError = "No microphone found."
-            return
-        }
-        if pick.uid != mic?.uid || !mics.contains(where: { $0.id == mic?.id }) { open(pick) }
+        if let mic, mic.uid == Mics.choose(from: mics, wanted: wanted)?.uid, mics.contains(mic) { return }
+        openBest(wanted: wanted)
     }
 
-    /// The user picked a mic: remember it, so it comes back by itself after being unplugged.
+    /// Open the wanted mic, else the next best that has not failed this round; `mic` is only ever an open one.
+    private func openBest(wanted: String?) {
+        while let pick = Mics.choose(from: mics.filter { !failed.contains($0.uid) }, wanted: wanted) {
+            if open(pick) { return }
+        }
+        capture.stop()
+        mic = nil
+        if micError == nil { micError = "No microphone found." }
+    }
+
+    /// The user picked a mic: remember it, so it comes back by itself after being unplugged. If it will not open,
+    /// fall back to the next best, and say why.
     func select(_ m: Mic) {
         UserDefaults.standard.set(m.uid, forKey: Key.mic)
         SessionLog.shared.event("select_mic", ["name": m.name])
-        open(m)
+        failed.remove(m.uid)
+        if !open(m) {
+            let why = micError
+            openBest(wanted: nil)
+            micError = why
+        }
     }
 
     func select(index: Int) {
@@ -159,11 +163,27 @@ final class AppModel {
         select(mics[index])
     }
 
-    private func reopenMic() {
-        if let mic { open(mic) }
+    /// The running session failed (the device went away, say): reopen, at most once per 2 s, and when inside that
+    /// cooldown schedule the retry for its end, so capture never stays stopped silently.
+    private func captureFailed() {
+        let wait = 2 - Date().timeIntervalSince(lastReopen)
+        guard wait <= 0 else {
+            micError = "Capture failed; retrying in \(Int(wait.rounded(.up))) s"
+            Log.mic.error("capture failed within 2 s of a reopen; retrying in \(wait, privacy: .public) s")
+            DispatchQueue.main.asyncAfter(deadline: .now() + wait + 0.1) {
+                MainActor.assumeIsolated { [weak self] in self?.captureFailed() }
+            }
+            return
+        }
+        lastReopen = Date()
+        Log.mic.info("capture failed; reopening the mic")
+        let uid = mic?.uid ?? UserDefaults.standard.string(forKey: Key.mic)
+        mics = Mics.all()
+        openBest(wanted: uid)
     }
 
-    private func open(_ m: Mic) {
+    @discardableResult
+    private func open(_ m: Mic) -> Bool {
         do {
             try capture.start(uid: m.uid)
             mic = m
@@ -176,11 +196,15 @@ final class AppModel {
             Log.mic.info(
                 "opened \(m.name, privacy: .public) (\(m.uid, privacy: .public)) at \(rate, privacy: .public) Hz")
             SessionLog.shared.event("mic_open", ["name": m.name, "uid": m.uid, "rate": rate])
+            return true
         } catch {
-            mic = m
+            // Capture.start stopped the old session first, so nothing is open now.
+            mic = nil
+            failed.insert(m.uid)
             micError = "\(m.name): \(error)"
             SessionLog.shared.event("mic_error", ["name": m.name, "error": "\(error)"])
             Log.mic.error("could not open \(m.name, privacy: .public): \(String(describing: error), privacy: .public)")
+            return false
         }
     }
 
@@ -269,7 +293,12 @@ final class AppModel {
         Log.replay.info(
             "replay \(seconds, privacy: .public)s: \(Double(clip.count) / self.clipRate, format: .fixed(precision: 1), privacy: .public)s captured, peak \(decibels(peak(clip[...])), format: .fixed(precision: 1), privacy: .public) dB, rms \(decibels(rms(clip[...])), format: .fixed(precision: 1), privacy: .public) dB"
         )
-        applyProcessing(keepPlace: false)
+        // Start playing the plain (normalized) clip at once, so the transport is set the moment replay is asked
+        // for; the processed clip swaps in keeping the place, and any pause or seek made meanwhile.
+        let plain = normalizePeak(clip)
+        processed[Processing(noiseReduction: false, voiceBoost: false)] = plain
+        load(plain, keepPlace: false)
+        applyProcessing(keepPlace: true)
     }
 
     /// Put the clip for the current toggles into the player, computing it off the main thread the first time.

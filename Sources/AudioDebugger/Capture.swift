@@ -16,6 +16,8 @@ final class Capture: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         var ring = RingBuffer(capacity: 1)
         var scope = RingBuffer(capacity: scopeSize)
         var clips = 0
+        /// False once stopped, so a buffer still in flight on the capture queue is dropped.
+        var running = true
     }
 
     private var session: AVCaptureSession?
@@ -67,6 +69,11 @@ final class Capture: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         errorObserver = nil
         session?.stopRunning()
         session = nil
+        // The live view must not keep analysing the last window as if it were live; the replay ring stays.
+        buffers.withLock {
+            $0.running = false
+            $0.scope.reset()
+        }
     }
 
     func captureOutput(
@@ -85,6 +92,7 @@ final class Capture: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
             count: Int(list.mBuffers.mDataByteSize) / MemoryLayout<Float>.size)
         let clipped = samples.reduce(0) { $0 + (abs($1) >= 0.999 ? 1 : 0) }
         buffers.withLock {
+            guard $0.running else { return }
             $0.ring.write(samples)
             $0.scope.write(samples)
             $0.clips += clipped

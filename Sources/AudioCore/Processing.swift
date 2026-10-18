@@ -35,8 +35,10 @@ struct Biquad {
     }
 }
 
-/// Voice boost: band-limit to 90 Hz–7.5 kHz (4th order each side), bring the loud frames (the speech, not the
-/// silences between) to `targetDB` RMS, then soft-limit with tanh so peaks round off instead of clipping.
+/// Voice boost: band-limit to 90 Hz–7.5 kHz (4th order each side), bring the speech to `targetDB` RMS, then
+/// soft-limit with tanh so peaks round off instead of clipping. Speech is the frames at least 6 dB over the floor
+/// (the 20th-percentile frame), levelled by their median: a fixed percentile of all frames lands on the background
+/// when only a second of a 20-second clip is speech, and drives that speech hard into the limiter.
 public func voiceBoost(_ x: [Float], sampleRate: Float, targetDB: Float = -16) -> [Float] {
     let hp = Biquad.highPass(90, rate: sampleRate)
     let lp = Biquad.lowPass(min(7500, sampleRate / 2 - 1), rate: sampleRate)
@@ -45,7 +47,9 @@ public func voiceBoost(_ x: [Float], sampleRate: Float, targetDB: Float = -16) -
     let frames = y.count / frame
     guard frames > 0 else { return y }
     let loudness = (0..<frames).map { rms(y[$0 * frame..<($0 + 1) * frame]) }.sorted()
-    let loud = loudness[min(frames - 1, Int(Float(frames) * 0.9))]
+    let floor = loudness[frames / 5]
+    let speech = loudness.filter { $0 >= floor * 2 }
+    let loud = speech.isEmpty ? loudness[min(frames - 1, Int(Float(frames) * 0.9))] : speech[speech.count / 2]
     guard loud > 0 else { return y }
     let gain = pow(10, targetDB / 20) / loud
     let drive: Float = 1.2
@@ -83,8 +87,12 @@ public func denoise(_ x: [Float], reduction: Float = 0.9, frameSize: Int = 2048)
 
     // Noise profile from the quietest frames, among those wholly inside the clip: the zero padding (or any digital
     // silence) would put -200 dB readings in the profile, blow up its σ and lift the threshold over the voice.
-    let inside = starts.indices.filter { starts[$0] >= frameSize && starts[$0] + frameSize <= frameSize + x.count }
-    let candidates = inside.isEmpty ? Array(starts.indices) : inside
+    // Recorded digital silence (a mic starting, a dropout) is excluded the same way: it is not the room's noise.
+    let inside = starts.indices.filter {
+        starts[$0] >= frameSize && starts[$0] + frameSize <= frameSize + x.count && energy[$0] > 1e-6
+    }
+    guard !inside.isEmpty else { return x }  // nothing but silence: nothing to learn the noise from
+    let candidates = inside
     let quietCount = max(1, candidates.count / 5)
     let quiet = candidates.sorted { energy[$0] < energy[$1] }.prefix(quietCount)
     var threshold = [Float](repeating: 0, count: bins)
