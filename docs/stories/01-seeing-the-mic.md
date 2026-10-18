@@ -3,7 +3,8 @@
 ## 001 — Choose the mic
 
 **Summary**: Every mic is a button; a number key switches; the choice is remembered and comes back when re-plugged.
-**Status**: Done (initial commit; selftest: mic list and `--mic MacBook`; switching by key: run, Igor)
+**Status**: Done (06c69ad, cb62d8a fallback on a mic that will not open; selftest: mic list and `--mic MacBook`;
+switching by key: run, Igor)
 **Why**: "Mic selection is hard to change" (the Python app's dropdown).
 
 **Use Case**: As Igor, I want to switch mics with one key, so that I can compare them while I talk.
@@ -30,7 +31,7 @@ Bluetooth mics carry a tooltip saying so. Core Audio's private `CADefaultDeviceA
 
 **Summary**: Waveform, log-frequency spectrum with peak hold, 0–8 kHz spectrogram, RMS/peak meter, noise floor,
 dominant frequency, pitch as a note, clip count, and a gain hint.
-**Status**: Done (initial commit; host tests for levels, spectrum calibration, pitch, spectrogram; selftest log)
+**Status**: Done (06c69ad; host tests for levels, noise floor, spectrum calibration, pitch, spectrogram; selftest log)
 
 **Use Case**: As Igor, I want to see my mic's level, noise and tone at a glance, so that I can set the gain and
 spot hum or hiss.

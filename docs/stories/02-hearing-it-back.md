@@ -4,7 +4,8 @@
 
 **Summary**: The last 20 s are always kept; one key plays the last 20, 10 or 5 s, with the clip's waveform, a
 playhead and a scrubber.
-**Status**: Done (initial commit; host tests for the ring and transport; selftest: open, pause holds, seek)
+**Status**: Done (06c69ad, cb62d8a plays at once and survives an output change; host tests for the ring and
+transport; selftest: open, pause holds, seek; by ear: ad-dsc)
 **Why**: "Can I always replay the last 20 seconds?"; "replay should have 20, 10, 5 s and bring up a playback bar
 and waveform".
 
@@ -25,7 +26,7 @@ and waveform".
 
 **Summary**: Space pauses and resumes; A starts over; the scrubber, a click or drag on the waveform, and the arrow
 keys seek.
-**Status**: Done (initial commit; host test for the transport; selftest: pause holds, seek to the middle, restart)
+**Status**: Done (06c69ad; host test for the transport; selftest: pause holds, seek to the middle, restart)
 **Why**: "When replay I should have pause, replay, and a scrubber bar".
 
 **Use Case**: As Igor, I want to stop and go back to one word, so that I can listen to it again.
@@ -49,8 +50,8 @@ keys seek.
 
 **Summary**: Replay is cleaned up by default: spectral-gating noise reduction and a voice boost; N and B toggle each,
 live, keeping the place, to compare.
-**Status**: Done (initial commit; host test: voice over hiss improves by more than 15 dB; selftest: both toggles,
-place kept, 20 ms for 5 s)
+**Status**: Done (06c69ad, cb62d8a brief speech and dropouts; host tests: voice over hiss improves by more than
+15 dB, one second of speech in twenty levelled to target; selftest: both toggles, place kept, 20 ms for 5 s)
 **Why**: "Let's boost voice and apply some noise cancellation algos on replay as well".
 
 **Use Case**: As Igor, I want a quiet, hissy mic to sound like my voice on replay, so that I can judge the words and
