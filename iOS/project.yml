@@ -12,7 +12,7 @@ packages:
   BugKit:  # same ref as Package.swift; `just ios-project` copies the root Package.resolved in, so both apps build
     # the same pinned revision
     url: https://github.com/idvorkin/bug-kit
-    exactVersion: 0.3.7
+    exactVersion: 0.3.11
 targets:
   AudioDebuggerPhone:
     type: application

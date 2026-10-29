@@ -9,7 +9,7 @@ let package = Package(
     dependencies: [
         // The shared bug-report library (format, store, crash capture, log pruning, What's new, About), as
         // magic-monitor-native uses it. A release tag, exactly: every app and the Mac's listener share one format.
-        .package(url: "https://github.com/idvorkin/bug-kit", exact: "0.3.7")
+        .package(url: "https://github.com/idvorkin/bug-kit", exact: "0.3.11")
     ],
     targets: [
         // Platform-free maths: levels, FFT spectrum, pitch, the replay ring, noise reduction, voice boost, the
