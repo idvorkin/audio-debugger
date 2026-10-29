@@ -16,11 +16,14 @@ struct Mic: Identifiable, Hashable {
 
 /// `all()` and `onChange(_:)` are each platform's (Mac/Mics+Mac.swift, iOS/Mics+iOS.swift); the choice is shared.
 extension Mics {
-    /// The mic to open: the one asked for if present, else a USB mic, else the built-in one. Never Bluetooth unless
-    /// it is all there is: opening an AirPods mic drops them into low-quality headset mode, music and all.
+    /// The mic to open: the one asked for if present, else a USB mic, else a wired headset's (iOS), else the built-in
+    /// one. Never Bluetooth unless it is all there is: opening an AirPods mic drops them into low-quality headset
+    /// mode, music and all.
     static func choose(from mics: [Mic], wanted uid: String?) -> Mic? {
         if let uid, let m = mics.first(where: { $0.uid == uid }) { return m }
-        return mics.first { $0.kind == .usb } ?? mics.first { $0.kind == .builtIn } ?? mics.first { !$0.isBluetooth }
-            ?? mics.first
+        for kind: Mic.Kind in [.usb, .wired, .builtIn] {
+            if let m = mics.first(where: { $0.kind == kind }) { return m }
+        }
+        return mics.first { !$0.isBluetooth } ?? mics.first
     }
 }

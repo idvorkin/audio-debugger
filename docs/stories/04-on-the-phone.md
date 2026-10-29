@@ -31,8 +31,8 @@ gain or voice processing.
 
 ## 010 — The phone picks the mic as the Mac does
 
-**Summary**: The audio session's inputs are the mic list: a USB mic, else the built-in one; Bluetooth last, since
-opening AirPods' mic drops them to call quality.
+**Summary**: The audio session's inputs are the mic list: a USB mic, else a wired headset's, else the built-in one;
+Bluetooth last, since opening AirPods' mic drops them to call quality.
 **Status**: Planned
 
 **Use Case**: As Igor, I want the phone to open the right mic by itself, so that my AirPods keep playing music in
@@ -46,7 +46,7 @@ full quality while the phone's mic is measured.
   - Then it opens the built-in mic, and the AirPods keep playing in full quality
 - Scenario: A headset plugged in
   - Given the app is open on the built-in mic
-  - When I plug in a USB mic
+  - When I plug in a USB mic or a wired headset
   - Then the list shows it, and the app switches to it
 
 ## 011 — The replay keeps listening in the background
