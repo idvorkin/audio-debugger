@@ -28,10 +28,19 @@ final class Capture: @unchecked Sendable {
         let source = try MicSource(
             uid: uid, deliver: { [weak self] samples in self?.ingest(samples) },
             onFailure: { [weak self] in self?.onFailure?() })
+        try source.start()
+        // After the start, so a source that fails to start loses nothing. At the same rate the ring carries on: a
+        // reopen (iOS reopens on every route change and interruption) keeps the last 20 s, with a gap in them.
         sampleRate = source.sampleRate
         let capacity = replaySeconds * Int(source.sampleRate)
-        buffers.withLock { $0 = Buffers(ring: RingBuffer(capacity: capacity)) }
-        try source.start()
+        buffers.withLock { b in
+            if b.ring.capacity == capacity {
+                b.running = true
+                b.scope.reset()
+            } else {
+                b = Buffers(ring: RingBuffer(capacity: capacity))
+            }
+        }
         self.source = source
         Log.mic.info("capture started: \(source.name, privacy: .public) at \(source.sampleRate, privacy: .public) Hz")
     }
