@@ -102,7 +102,9 @@ final class AppModel {
             voiceBoost: d.object(forKey: Key.voiceBoost) as? Bool ?? true)
     }
 
+    /// Once: `onAppear` can run again (an iPad's second window), which would add a second mic listener and timer.
     func start() {
+        guard timer == nil else { return }
         capture.onFailure = { [weak self] in self?.captureFailed() }
         Mics.onChange { [weak self] in self?.micsChanged() }
         AVCaptureDevice.requestAccess(for: .audio) { granted in
@@ -121,9 +123,12 @@ final class AppModel {
                 }
             }
         }
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+        // In the common modes: in the default mode alone, the readings and playhead freeze while a finger drags.
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     // MARK: Mics
