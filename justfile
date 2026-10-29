@@ -103,7 +103,9 @@ logs:
 
 # ---- iPhone and iPad (Xcode). Everything below is the build lane: run it under ~/tmp/agent/locks/build.lock. ----
 
-ios_app := "build/ios/Build/Products/Debug-iphoneos/Audio Debugger.app"
+# Release on a device: in Debug, AudioCore's DSP is unoptimized (denoise + boost of a 5 s clip took 2.5 s on the
+# simulator, 15 ms in the Mac's release build).
+ios_app := "build/ios/Build/Products/Release-iphoneos/Audio Debugger.app"
 ios_sim_app := "build/ios/Build/Products/Debug-iphonesimulator/Audio Debugger.app"
 iphone_udid := "00008150-000A31D10CF2401C"  # Igor iPhone 17 Pro
 
@@ -184,7 +186,7 @@ _iphone-locked device:
     guard=.build/checkouts/bug-kit/scripts/signing-guard.sh
     [ -f "$guard" ] || swift package resolve >/dev/null || { echo "error: no bug-kit checkout for the signing guard" >&2; exit 1; }
     bash "$guard" xcodebuild -project iOS/AudioDebuggerPhone.xcodeproj -scheme AudioDebuggerPhone \
-      -destination "platform=iOS,id={{device}}" -derivedDataPath build/ios \
+      -destination "platform=iOS,id={{device}}" -derivedDataPath build/ios -configuration Release \
       -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
       BUGKIT_COMMIT="$(git describe --always --dirty --abbrev=40 --exclude='*')" build 2>&1 | just _xcb
     rc=${PIPESTATUS[0]}
