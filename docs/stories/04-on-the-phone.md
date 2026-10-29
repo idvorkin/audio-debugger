@@ -75,7 +75,8 @@ call or a recording I made in another app.
 
 **Summary**: Both apps have the same icon: a word's green waveform over a voice's blue spectrum, on the app's dark
 panel, drawn by `scripts/make-icon.swift` (`just icon`).
-**Status**: Planned
+**Status**: Done (12d285f; `just app` bundles the icns; installed on the iPhone, the Home Screen look is Igor's
+check)
 **Why**: "OK, add an icon too" (Igor, 2026-10-29).
 
 **Use Case**: As Igor, I want to find Audio Debugger by its look, so that I open it without searching.

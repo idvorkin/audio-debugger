@@ -14,7 +14,7 @@ test:
     set -uo pipefail
     swift test -Xswiftc -load-plugin-library -Xswiftc "{{testing_macros}}" 2>&1 | grep -E "error:|✘|Test run" | tail -20
 
-swift_files := "Sources Tests iOS Package.swift"
+swift_files := "Sources Tests iOS scripts Package.swift"
 
 # Format every Swift file in place to the house style (.swift-format, as magic-monitor-native).
 fmt:
@@ -95,7 +95,9 @@ icon:
     set -euo pipefail
     png=iOS/Assets.xcassets/AppIcon.appiconset/AppIcon.png
     swift scripts/make-icon.swift "$png"
-    set=$(mktemp -d)/AppIcon.iconset
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    set="$tmp/AppIcon.iconset"
     mkdir -p "$set"
     for px in 16 32 128 256 512; do
       sips -z $px $px "$png" --out "$set/icon_${px}x${px}.png" >/dev/null

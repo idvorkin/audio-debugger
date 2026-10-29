@@ -1,5 +1,7 @@
 // The app icon, drawn in the app's own palette (Panels.swift): a spectrum's blue fill and peak line under the green
-// waveform of a word, on the panel's dark background. Square and opaque: iOS and macOS mask the corners themselves.
+// waveform of a word, on the panel's dark background. Square and opaque: iOS and macOS 26+ mask the corners
+// themselves. ponytail: macOS 14/15 show the Mac's icns as a sharp square; draw rounded, transparent corners into the
+// Mac's iconset if the app is ever used there.
 //
 //     swift scripts/make-icon.swift <out.png>   (1024 x 1024; `just icon` makes both apps' icons from it)
 import CoreGraphics
@@ -78,7 +80,9 @@ ctx.setLineCap(.round)
 ctx.setLineJoin(.round)
 ctx.strokePath()
 
-guard let image = ctx.makeImage(), CommandLine.arguments.count > 1 else { fatalError("usage: make-icon.swift <out.png>") }
+guard let image = ctx.makeImage(), CommandLine.arguments.count > 1 else {
+    fatalError("usage: make-icon.swift <out.png>")
+}
 let url = URL(fileURLWithPath: CommandLine.arguments[1])
 guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
     fatalError("cannot write \(url.path)")
