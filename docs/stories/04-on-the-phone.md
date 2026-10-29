@@ -4,7 +4,8 @@
 
 **Summary**: A universal iOS app with the Mac's readings, replay, noise reduction and voice boost: the panels
 stacked for a phone held upright, the Mac's layout on an iPad, every action a tap.
-**Status**: Planned
+**Status**: Done on the simulator (d4f3b8c; 9faf87a and 1b69ef5 recover from interruptions; ios-selftest: live,
+replay, pause, seek, toggles, restart, a report with its WAV). On the phone: pending Igor's go for a deploy.
 **Why**: "Lets build the iOS version of this too".
 
 **Use Case**: As Igor, I want the audio debugger on my phone, so that I can check a mic (the phone's own, a headset,
