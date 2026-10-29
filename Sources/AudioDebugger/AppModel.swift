@@ -83,7 +83,7 @@ final class AppModel {
     private var timer: Timer?
     private var lastLevelLog = Date.distantPast
     private var lastReopen = Date.distantPast
-    private var retryPending = false
+    private var pendingRetry: DispatchWorkItem?
     /// Mics that failed to open since the device list last changed: skipped when falling back.
     private var failed: Set<String> = []
     private var processGeneration = 0
@@ -193,16 +193,18 @@ final class AppModel {
     }
 
     /// One pending retry at a time: two failures together (an interruption and a route change) must not start two
-    /// chains that retry forever.
+    /// chains that retry forever. A mic opening by any other way (`.ended`, a tap) cancels it, or it would reopen
+    /// the healthy mic.
     private func retry(after seconds: Double) {
-        guard !retryPending else { return }
-        retryPending = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
-            MainActor.assumeIsolated { [weak self] in
-                self?.retryPending = false
+        guard pendingRetry == nil else { return }
+        let item = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                self?.pendingRetry = nil
                 self?.captureFailed()
             }
         }
+        pendingRetry = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: item)
     }
 
     @discardableResult
@@ -211,6 +213,8 @@ final class AppModel {
             try capture.start(uid: m.uid)
             mic = m
             micError = nil
+            pendingRetry?.cancel()
+            pendingRetry = nil
             let rate = capture.sampleRate
             analyzer = SpectrumAnalyzer(size: scopeSize, sampleRate: rate)
             pitch = PitchDetector(size: scopeSize, sampleRate: Float(rate))
