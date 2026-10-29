@@ -1,20 +1,7 @@
 import CoreAudio
 import Foundation
 
-/// An input device as Core Audio reports it.
-struct Mic: Identifiable, Hashable {
-    let id: AudioDeviceID
-    let uid: String
-    let name: String
-    let transport: UInt32
-
-    var isBluetooth: Bool {
-        transport == kAudioDeviceTransportTypeBluetooth || transport == kAudioDeviceTransportTypeBluetoothLE
-    }
-    var isBuiltIn: Bool { transport == kAudioDeviceTransportTypeBuiltIn }
-    var isUSB: Bool { transport == kAudioDeviceTransportTypeUSB }
-}
-
+/// The Mac's mics: every Core Audio device with an input channel, by its UID (which `AVCaptureDevice` opens).
 enum Mics {
     /// Every device with at least one input channel.
     static func all() -> [Mic] {
@@ -29,16 +16,8 @@ enum Mics {
                 let uid = string(id, kAudioDevicePropertyDeviceUID),
                 !name.hasPrefix("CADefaultDeviceAggregate")  // the system's private aggregates, not a mic
             else { return nil }
-            return Mic(id: id, uid: uid, name: name, transport: transportType(id))
+            return Mic(uid: uid, name: name, kind: kind(transportType(id)))
         }
-    }
-
-    /// The mic to open: the one asked for if present, else a USB mic, else the built-in one. Never Bluetooth unless
-    /// it is all there is: opening an AirPods mic drops them into low-quality headset mode, music and all.
-    static func choose(from mics: [Mic], wanted uid: String?) -> Mic? {
-        if let uid, let m = mics.first(where: { $0.uid == uid }) { return m }
-        return mics.first(where: \.isUSB) ?? mics.first(where: \.isBuiltIn) ?? mics.first { !$0.isBluetooth }
-            ?? mics.first
     }
 
     /// Calls `handler` on the main queue whenever a device is plugged in or removed.
@@ -46,6 +25,15 @@ enum Mics {
         var addr = address(kAudioHardwarePropertyDevices)
         AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, .main) { _, _ in
             handler()
+        }
+    }
+
+    private static func kind(_ transport: UInt32) -> Mic.Kind {
+        switch transport {
+        case kAudioDeviceTransportTypeBuiltIn: .builtIn
+        case kAudioDeviceTransportTypeUSB: .usb
+        case kAudioDeviceTransportTypeBluetooth, kAudioDeviceTransportTypeBluetoothLE: .bluetooth
+        default: .other
         }
     }
 

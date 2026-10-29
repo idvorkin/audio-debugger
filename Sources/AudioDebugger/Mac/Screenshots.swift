@@ -12,7 +12,7 @@ enum Screenshots {
             func wait(_ s: Double) async { try? await Task.sleep(for: .seconds(s)) }
             guard let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain }) else {
                 Log.selftest.error("screenshots: no window")
-                NSApp.terminate(nil)
+                quitApp()
                 return
             }
             window.setContentSize(NSSize(width: 1300, height: 860))
@@ -25,7 +25,7 @@ enum Screenshots {
             await wait(2)
             model.closeReplay()
             Log.selftest.info("screenshots done")
-            NSApp.terminate(nil)
+            quitApp()
         }
     }
 
