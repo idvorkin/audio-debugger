@@ -83,6 +83,7 @@ final class AppModel {
     private var timer: Timer?
     private var lastLevelLog = Date.distantPast
     private var lastReopen = Date.distantPast
+    private var retryPending = false
     /// Mics that failed to open since the device list last changed: skipped when falling back.
     private var failed: Set<String> = []
     private var processGeneration = 0
@@ -167,23 +168,36 @@ final class AppModel {
         select(mics[index])
     }
 
-    /// The running session failed (the device went away, say): reopen, at most once per 2 s, and when inside that
-    /// cooldown schedule the retry for its end, so capture never stays stopped silently.
+    /// The running session failed (the device went away, a call took the mic): reopen, at most once per 2 s, and
+    /// while that does not open any mic keep retrying every 3 s, so capture never stays stopped silently.
     private func captureFailed() {
         let wait = 2 - Date().timeIntervalSince(lastReopen)
         guard wait <= 0 else {
             micError = "Capture failed; retrying in \(Int(wait.rounded(.up))) s"
             Log.mic.error("capture failed within 2 s of a reopen; retrying in \(wait, privacy: .public) s")
-            DispatchQueue.main.asyncAfter(deadline: .now() + wait + 0.1) {
-                MainActor.assumeIsolated { [weak self] in self?.captureFailed() }
-            }
+            retry(after: wait + 0.1)
             return
         }
         lastReopen = Date()
         Log.mic.info("capture failed; reopening the mic")
         let uid = mic?.uid ?? UserDefaults.standard.string(forKey: Key.mic)
         mics = Mics.all()
+        failed = []  // each retry is a new chance for every mic: an interruption fails them all for a while
         openBest(wanted: uid)
+        if mic == nil { retry(after: 3) }
+    }
+
+    /// One pending retry at a time: two failures together (an interruption and a route change) must not start two
+    /// chains that retry forever.
+    private func retry(after seconds: Double) {
+        guard !retryPending else { return }
+        retryPending = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+            MainActor.assumeIsolated { [weak self] in
+                self?.retryPending = false
+                self?.captureFailed()
+            }
+        }
     }
 
     @discardableResult

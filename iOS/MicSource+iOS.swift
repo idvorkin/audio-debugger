@@ -51,7 +51,8 @@ final class MicSource {
                 Log.mic.error("input engine configuration changed; reopening")
                 self?.onFailure()
             })
-        // A call or Siri took the mic; when it ends, reopen (the engine does not restart by itself).
+        // A call or Siri took the mic, which stops the engine. Fail at once, so the live view stops showing the last
+        // window as if live; the model retries until the mic opens again, as `.ended` may come late or never.
         observers.append(
             center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) {
                 [weak self] note in
@@ -59,7 +60,7 @@ final class MicSource {
                     let type = AVAudioSession.InterruptionType(rawValue: raw)
                 else { return }
                 Log.mic.info("audio session interruption \(type == .began ? "began" : "ended", privacy: .public)")
-                if type == .ended { self?.onFailure() }
+                self?.onFailure()
             })
         observers.append(
             center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) {
