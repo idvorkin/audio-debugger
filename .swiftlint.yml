@@ -9,4 +9,5 @@ force_unwrapping:
   severity: error
 included:
   - Sources
+  - iOS
   - Package.swift

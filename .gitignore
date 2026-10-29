@@ -1,6 +1,12 @@
 .build/
 build/
 .DS_Store
+.worktrees/
+
+# Generated from iOS/project.yml by `just ios-project`
+iOS/AudioDebuggerPhone.xcodeproj/
+iOS/Info.plist
+iOS/AudioDebuggerPhone.entitlements
 
 # Beads / Dolt files (added by bd init)
 .dolt/

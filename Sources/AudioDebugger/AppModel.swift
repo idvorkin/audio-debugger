@@ -111,8 +111,12 @@ final class AppModel {
                 if granted {
                     self.micsChanged()
                 } else {
+                    #if os(macOS)
                     self.micError =
                         "Microphone access denied — allow it in System Settings → Privacy & Security → Microphone."
+                    #else
+                    self.micError = "Microphone access denied — allow it in Settings → Audio Debugger → Microphone."
+                    #endif
                 }
             }
         }
@@ -218,7 +222,12 @@ final class AppModel {
 
     // MARK: Live readings
 
+    /// False while iOS has the app in the background: capture carries on into the replay ring, but nothing is on screen
+    /// to draw, so the 30 Hz readings (an FFT and a spectrogram image each) are skipped.
+    var onScreen = true
+
     private func tick() {
+        guard onScreen else { return }
         let snap = capture.snapshot()
         let window = snap.scope
         waveform = Array(window.suffix(2048))

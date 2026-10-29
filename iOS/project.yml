@@ -1,0 +1,76 @@
+# The iPhone and iPad app: `just ios-project` generates AudioDebuggerPhone.xcodeproj from this (the project is not
+# checked in). It shares AudioCore through the package and compiles the app layer, Sources/AudioDebugger outside
+# Mac/, itself; only the files in this folder are iOS's own.
+name: AudioDebuggerPhone
+options:
+  bundleIdPrefix: com.idvorkin
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  AudioDebugger:
+    path: ..
+  BugKit:  # same ref as Package.swift; `just ios-project` copies the root Package.resolved in, so both apps build
+    # the same pinned revision
+    url: https://github.com/idvorkin/bug-kit
+    exactVersion: 0.3.7
+targets:
+  AudioDebuggerPhone:
+    type: application
+    platform: iOS
+    sources:
+      - path: .
+        includes: ["*.swift"]
+      - path: ../Sources/AudioDebugger
+        excludes: ["Mac/**"]
+    dependencies:
+      - package: AudioDebugger
+        product: AudioCore
+      - package: BugKit
+    postCompileScripts:
+      # The build's commit, for bug reports (AppModel.buildCommit), as `just app` writes it.
+      - name: Write commit.txt
+        script: git -C "$SRCROOT/.." describe --always --dirty > "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/commit.txt"
+        basedOnDependencyAnalysis: false
+      # What's new, as `just app` bundles it, from BugKit's script in SwiftPM's checkout.
+      - name: What's new
+        script: |
+          bash "$BUILD_DIR/../../SourcePackages/checkouts/bug-kit/scripts/whats-new.sh" \
+            "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/whats-new.json" --repo "$SRCROOT/.." \
+            --base-url "https://github.com/idvorkin/audio-debugger/blob/main/docs/stories/" >/dev/null || true
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.idvorkin.audiodebugger
+        PRODUCT_NAME: Audio Debugger
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"  # as the Mac target: AVFoundation's callbacks are not Sendable-annotated
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 45P6D3439T  # as magic-monitor-native
+        ENABLE_USER_SCRIPT_SANDBOXING: NO  # the scripts read the git checkout
+    # BugKit's private CloudKit delivery, into the container the other apps and the Mac's reader share. Automatic
+    # signing (-allowProvisioningUpdates) adds the capability to the App ID.
+    entitlements:
+      path: AudioDebuggerPhone.entitlements
+      properties:
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers: [iCloud.com.idvorkin.BugKitReports]
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Audio Debugger
+        # BugKit's About; the justfile passes BUGKIT_COMMIT (the full commit, "-dirty" too) on every build.
+        BugKitCommit: $(BUGKIT_COMMIT)
+        BugKitRepositoryURL: https://github.com/idvorkin/audio-debugger
+        NSMicrophoneUsageDescription: Audio Debugger shows and replays what your microphone hears. Audio stays on this device unless you send a bug report.
+        # The always-on 20 s replay keeps capturing while another app is on screen.
+        UIBackgroundModes: [audio]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
