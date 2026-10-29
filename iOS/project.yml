@@ -20,6 +20,7 @@ targets:
     sources:
       - path: .
         includes: ["*.swift"]
+      - path: Assets.xcassets  # the icon, from `just icon` (scripts/make-icon.swift), as the Mac's AppIcon.icns
       - path: ../Sources/AudioDebugger
         excludes: ["Mac/**"]
     dependencies:
@@ -47,6 +48,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 45P6D3439T  # as magic-monitor-native
         ENABLE_USER_SCRIPT_SANDBOXING: NO  # the scripts read the git checkout
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     # BugKit's private CloudKit delivery, into the container the other apps and the Mac's reader share. Automatic
     # signing (-allowProvisioningUpdates) adds the capability to the App ID.
     entitlements:

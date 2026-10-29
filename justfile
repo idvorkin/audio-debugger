@@ -36,6 +36,7 @@ app:
     mkdir -p "{{app}}/Contents/MacOS" "{{app}}/Contents/Resources"
     cp "$(swift build -c release --show-bin-path)/AudioDebugger" "{{app}}/Contents/MacOS/"
     cp Support/Info.plist "{{app}}/Contents/"
+    cp Support/AppIcon.icns "{{app}}/Contents/Resources/"
     git describe --always --dirty > "{{app}}/Contents/Resources/commit.txt" 2>/dev/null || echo none > "{{app}}/Contents/Resources/commit.txt"
     # BugKit's About reads the build's commit and the repository from Info.plist.
     /usr/libexec/PlistBuddy -c "Add :BugKitCommit string $(git describe --always --dirty --abbrev=40 --exclude='*' 2>/dev/null || echo unknown)" \
@@ -87,6 +88,21 @@ screenshots mic="MacBook": app _quit-app
       [ -f "$dir/$shot.wid" ] || { echo "no $shot shot"; exit 1; }
       screencapture -o -x -l "$(cat "$dir/$shot.wid")" "docs/$shot.png" && echo "docs/$shot.png"
     done
+
+# Redraw the app icon (scripts/make-icon.swift) into the iOS asset catalog and the Mac's Support/AppIcon.icns.
+icon:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    png=iOS/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+    swift scripts/make-icon.swift "$png"
+    set=$(mktemp -d)/AppIcon.iconset
+    mkdir -p "$set"
+    for px in 16 32 128 256 512; do
+      sips -z $px $px "$png" --out "$set/icon_${px}x${px}.png" >/dev/null
+      sips -z $((px * 2)) $((px * 2)) "$png" --out "$set/icon_${px}x${px}@2x.png" >/dev/null
+    done
+    iconutil -c icns "$set" -o Support/AppIcon.icns
+    echo Support/AppIcon.icns
 
 # The session log (JSON Lines) of the newest launch: everything the app saw and did.
 session-log:

@@ -70,3 +70,23 @@ call or a recording I made in another app.
   - Given the app is capturing
   - When a phone call takes the mic and then ends
   - Then capture resumes by itself
+
+## 012 — An icon on the Home Screen and in the Dock
+
+**Summary**: Both apps have the same icon: a word's green waveform over a voice's blue spectrum, on the app's dark
+panel, drawn by `scripts/make-icon.swift` (`just icon`).
+**Status**: Planned
+**Why**: "OK, add an icon too" (Igor, 2026-10-29).
+
+**Use Case**: As Igor, I want to find Audio Debugger by its look, so that I open it without searching.
+
+**Acceptance Criteria**
+
+- Scenario: Home Screen
+  - Given the app is installed on the iPhone
+  - When I look at the Home Screen
+  - Then Audio Debugger shows the waveform-and-spectrum icon, not a blank one
+- Scenario: Dock
+  - Given the Mac app is open
+  - When I look at the Dock
+  - Then it shows the same icon
