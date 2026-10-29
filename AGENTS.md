@@ -18,6 +18,27 @@ boost, spectrogram pixels); `Sources/AudioDebugger/` is the app. A plain SwiftPM
 | `just live-install` | symlinks `/Applications/Audio Debugger.app` to the build |
 | `just screenshots [mic]` | the README's `docs/live.png` and `docs/replay.png`: the app in the background (no focus taken), muted, ~15 s, captured with `screencapture -l` |
 | `just logs` / `just session-log` | the app's os log, streamed / the newest session log (JSON Lines, everything the app saw and did) |
+| `just ios-build` | generates `iOS/AudioDebuggerPhone.xcodeproj` from `iOS/project.yml` (xcodegen) and builds for the simulator; errors only, the full output in `build/ios/xcodebuild.log` |
+| `just ios-selftest [seconds]` | the selftest's flow on a headless iPhone simulator (`audio-debugger-iphone`), muted; its mic is the Mac's default input |
+| `just iphone [udid]` | builds, signs, installs and opens on Igor's iPhone (or an iPad's UDID), then `record-deploy` |
+
+## iPhone and iPad
+
+`iOS/` is a universal app built with Xcode (the Mac app still builds with the Command Line Tools). It compiles
+`Sources/AudioDebugger` except `Mac/`, plus its own files: `Mics` (the audio session's input ports), `MicSource` (an
+AVAudioEngine input tap; no aggregate device on iOS, and it runs in the background), `PhoneView`, BugKit's reporter.
+
+- **After changing anything in `Sources/AudioDebugger` outside `Mac/`, run `just ios-build` as well as `just app`.**
+  iOS files may use `@State`; shared files may not.
+- **Build lane.** Every `ios-*` and `iphone` recipe runs under `~/tmp/agent/locks/build.lock` with
+  `~/gits/mac-driver/bin/time-limit` (BUILD-TURN.md), from a worktree pinned to the commit. `iphone` takes the
+  signing lock itself: never wrap it in that lock again.
+- **The session is `.playAndRecord`, `.measurement`, `.mixWithOthers`**, configured once at launch: no automatic
+  gain, and background capture is not cut off by other apps' audio. Dictation in bug reports is off, as it would
+  take over that session.
+- **Capture runs in the background** (`UIBackgroundModes audio`, Igor's choice 2026-10-29); `AppModel.onScreen` stops
+  the 30 Hz readings meanwhile.
+- Phone deploys only when Igor asks; iPad only when he asks for the iPad.
 
 - **Builds with the Command Line Tools, not Xcode.** No `@State` (its macro plugin ships only with Xcode): the model
   is an `@Observable` class held by the `App`, and views bind through `Binding(get:set:)`.

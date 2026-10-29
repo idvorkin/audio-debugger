@@ -83,6 +83,7 @@ final class AppModel {
     private var timer: Timer?
     private var lastLevelLog = Date.distantPast
     private var lastReopen = Date.distantPast
+    private var pendingRetry: DispatchWorkItem?
     /// Mics that failed to open since the device list last changed: skipped when falling back.
     private var failed: Set<String> = []
     private var processGeneration = 0
@@ -101,7 +102,9 @@ final class AppModel {
             voiceBoost: d.object(forKey: Key.voiceBoost) as? Bool ?? true)
     }
 
+    /// Once: `onAppear` can run again (an iPad's second window), which would add a second mic listener and timer.
     func start() {
+        guard timer == nil else { return }
         capture.onFailure = { [weak self] in self?.captureFailed() }
         Mics.onChange { [weak self] in self?.micsChanged() }
         AVCaptureDevice.requestAccess(for: .audio) { granted in
@@ -111,14 +114,21 @@ final class AppModel {
                 if granted {
                     self.micsChanged()
                 } else {
+                    #if os(macOS)
                     self.micError =
                         "Microphone access denied — allow it in System Settings → Privacy & Security → Microphone."
+                    #else
+                    self.micError = "Microphone access denied — allow it in Settings → Audio Debugger → Microphone."
+                    #endif
                 }
             }
         }
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+        // In the common modes: in the default mode alone, the readings and playhead freeze while a finger drags.
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     // MARK: Mics
@@ -163,23 +173,38 @@ final class AppModel {
         select(mics[index])
     }
 
-    /// The running session failed (the device went away, say): reopen, at most once per 2 s, and when inside that
-    /// cooldown schedule the retry for its end, so capture never stays stopped silently.
+    /// The running session failed (the device went away, a call took the mic): reopen, at most once per 2 s, and
+    /// while that does not open any mic keep retrying every 3 s, so capture never stays stopped silently.
     private func captureFailed() {
         let wait = 2 - Date().timeIntervalSince(lastReopen)
         guard wait <= 0 else {
             micError = "Capture failed; retrying in \(Int(wait.rounded(.up))) s"
             Log.mic.error("capture failed within 2 s of a reopen; retrying in \(wait, privacy: .public) s")
-            DispatchQueue.main.asyncAfter(deadline: .now() + wait + 0.1) {
-                MainActor.assumeIsolated { [weak self] in self?.captureFailed() }
-            }
+            retry(after: wait + 0.1)
             return
         }
         lastReopen = Date()
         Log.mic.info("capture failed; reopening the mic")
         let uid = mic?.uid ?? UserDefaults.standard.string(forKey: Key.mic)
         mics = Mics.all()
+        failed = []  // each retry is a new chance for every mic: an interruption fails them all for a while
         openBest(wanted: uid)
+        if mic == nil { retry(after: 3) }
+    }
+
+    /// One pending retry at a time: two failures together (an interruption and a route change) must not start two
+    /// chains that retry forever. A mic opening by any other way (`.ended`, a tap) cancels it, or it would reopen
+    /// the healthy mic.
+    private func retry(after seconds: Double) {
+        guard pendingRetry == nil else { return }
+        let item = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                self?.pendingRetry = nil
+                self?.captureFailed()
+            }
+        }
+        pendingRetry = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: item)
     }
 
     @discardableResult
@@ -188,6 +213,8 @@ final class AppModel {
             try capture.start(uid: m.uid)
             mic = m
             micError = nil
+            pendingRetry?.cancel()
+            pendingRetry = nil
             let rate = capture.sampleRate
             analyzer = SpectrumAnalyzer(size: scopeSize, sampleRate: rate)
             pitch = PitchDetector(size: scopeSize, sampleRate: Float(rate))
@@ -218,7 +245,12 @@ final class AppModel {
 
     // MARK: Live readings
 
+    /// False while iOS has the app in the background: capture carries on into the replay ring, but nothing is on screen
+    /// to draw, so the 30 Hz readings (an FFT and a spectrogram image each) are skipped.
+    var onScreen = true
+
     private func tick() {
+        guard onScreen else { return }
         let snap = capture.snapshot()
         let window = snap.scope
         waveform = Array(window.suffix(2048))

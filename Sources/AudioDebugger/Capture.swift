@@ -1,17 +1,14 @@
-import AVFoundation
 import AudioCore
-import CoreMedia
+import Foundation
 import os
 
 let replaySeconds = 20
 let scopeSize = 4096
 
-/// The mic side: an AVCaptureSession on one device (picked by its Core Audio UID), delivering mono float32 at the
-/// device's own rate into the replay ring and the scope window. The main thread reads snapshots under the same lock.
-///
-/// Not AVAudioEngine: on macOS its input runs through a private aggregate device ("CADefaultDeviceAggregate"),
-/// and pointing that at an input-only USB mic delivered nothing but zeros.
-final class Capture: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
+/// The mic side: a `MicSource` (each platform's: Mac/MicSource+Mac.swift, iOS/MicSource+iOS.swift) on one mic,
+/// delivering mono float32 at the device's own rate into the 20 s replay ring and the scope window. The main thread
+/// reads snapshots under the same lock.
+final class Capture: @unchecked Sendable {
     private struct Buffers {
         var ring = RingBuffer(capacity: 1)
         var scope = RingBuffer(capacity: scopeSize)
@@ -20,55 +17,37 @@ final class Capture: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         var running = true
     }
 
-    private var session: AVCaptureSession?
-    private var errorObserver: NSObjectProtocol?
-    private let queue = DispatchQueue(label: "capture", qos: .userInteractive)
+    private var source: MicSource?
     private let buffers = OSAllocatedUnfairLock(initialState: Buffers())
     private(set) var sampleRate: Double = 48_000
-    /// Called on the main queue when the session fails at runtime (the device went away, say).
+    /// Called on the main queue when the source fails at runtime (the device went away, an interruption ended).
     var onFailure: (() -> Void)?
 
     func start(uid: String) throws {
         stop()
-        guard let device = AVCaptureDevice(uniqueID: uid) else { throw CaptureError.noDevice }
-        let input = try AVCaptureDeviceInput(device: device)
-        let rate =
-            CMAudioFormatDescriptionGetStreamBasicDescription(device.activeFormat.formatDescription)?
-            .pointee.mSampleRate ?? 48_000
-        let output = AVCaptureAudioDataOutput()
-        output.audioSettings = [
-            AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: rate, AVNumberOfChannelsKey: 1,
-            AVLinearPCMBitDepthKey: 32, AVLinearPCMIsFloatKey: true, AVLinearPCMIsNonInterleaved: false,
-            AVLinearPCMIsBigEndianKey: false,
-        ]
-        output.setSampleBufferDelegate(self, queue: queue)
-        let session = AVCaptureSession()
-        session.beginConfiguration()
-        guard session.canAddInput(input), session.canAddOutput(output) else { throw CaptureError.cannotAdd }
-        session.addInput(input)
-        session.addOutput(output)
-        session.commitConfiguration()
-
-        sampleRate = rate
-        let capacity = replaySeconds * Int(rate)
-        buffers.withLock { $0 = Buffers(ring: RingBuffer(capacity: capacity)) }
-        errorObserver = NotificationCenter.default.addObserver(
-            forName: AVCaptureSession.runtimeErrorNotification, object: session, queue: .main
-        ) { [weak self] note in
-            let error = note.userInfo?[AVCaptureSessionErrorKey] as? NSError
-            Log.mic.error("capture runtime error: \(error?.localizedDescription ?? "unknown", privacy: .public)")
-            self?.onFailure?()
+        let source = try MicSource(
+            uid: uid, deliver: { [weak self] samples in self?.ingest(samples) },
+            onFailure: { [weak self] in self?.onFailure?() })
+        try source.start()
+        // After the start, so a source that fails to start loses nothing. At the same rate the ring carries on: a
+        // reopen (iOS reopens on every route change and interruption) keeps the last 20 s, with a gap in them.
+        sampleRate = source.sampleRate
+        let capacity = replaySeconds * Int(source.sampleRate)
+        buffers.withLock { b in
+            if b.ring.capacity == capacity {
+                b.running = true
+                b.scope.reset()
+            } else {
+                b = Buffers(ring: RingBuffer(capacity: capacity))
+            }
         }
-        session.startRunning()
-        self.session = session
-        Log.mic.info("capture started: \(device.localizedName, privacy: .public) at \(rate, privacy: .public) Hz")
+        self.source = source
+        Log.mic.info("capture started: \(source.name, privacy: .public) at \(source.sampleRate, privacy: .public) Hz")
     }
 
     func stop() {
-        if let errorObserver { NotificationCenter.default.removeObserver(errorObserver) }
-        errorObserver = nil
-        session?.stopRunning()
-        session = nil
+        source?.stop()
+        source = nil
         // The live view must not keep analysing the last window as if it were live; the replay ring stays.
         buffers.withLock {
             $0.running = false
@@ -76,20 +55,8 @@ final class Capture: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         }
     }
 
-    func captureOutput(
-        _ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection
-    ) {
-        var list = AudioBufferList()
-        var block: CMBlockBuffer?
-        let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
-            sampleBuffer, bufferListSizeNeededOut: nil, bufferListOut: &list,
-            bufferListSize: MemoryLayout<AudioBufferList>.size, blockBufferAllocator: nil,
-            blockBufferMemoryAllocator: nil, flags: kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment,
-            blockBufferOut: &block)
-        guard status == noErr, let data = list.mBuffers.mData else { return }
-        let samples = UnsafeBufferPointer(
-            start: data.assumingMemoryBound(to: Float.self),
-            count: Int(list.mBuffers.mDataByteSize) / MemoryLayout<Float>.size)
+    /// On the source's own thread.
+    private func ingest(_ samples: UnsafeBufferPointer<Float>) {
         let clipped = samples.reduce(0) { $0 + (abs($1) >= 0.999 ? 1 : 0) }
         buffers.withLock {
             guard $0.running else { return }

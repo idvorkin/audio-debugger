@@ -2,152 +2,92 @@ import AudioCore
 import BugKit
 import SwiftUI
 
-private let panel = Color(red: 0.05, green: 0.07, blue: 0.09)
-private let grid = Color.white.opacity(0.08)
-private let green = Color(red: 0.25, green: 0.73, blue: 0.31)
-private let blue = Color(red: 0.35, green: 0.65, blue: 1)
-private let amber = Color(red: 0.82, green: 0.6, blue: 0.13)
-private let red = Color(red: 0.97, green: 0.32, blue: 0.29)
-private let purple = Color(red: 0.64, green: 0.44, blue: 0.97)
+// The panels both apps lay out: the Mac's window (Mac/ContentView.swift) and the phone's and iPad's (iOS/).
 
-/// Views read the @Observable model from the environment and bind through `Binding(get:set:)`: no `@State`, whose
-/// macro plugin ships only with Xcode (this builds with the Command Line Tools).
-struct ContentView: View {
-    @Environment(AppModel.self) private var model
+let appBackground = Color(red: 0.08, green: 0.09, blue: 0.11)
+let panel = Color(red: 0.05, green: 0.07, blue: 0.09)
+let grid = Color.white.opacity(0.08)
+let green = Color(red: 0.25, green: 0.73, blue: 0.31)
+let blue = Color(red: 0.35, green: 0.65, blue: 1)
+let amber = Color(red: 0.82, green: 0.6, blue: 0.13)
+let red = Color(red: 0.97, green: 0.32, blue: 0.29)
+let purple = Color(red: 0.64, green: 0.44, blue: 0.97)
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            MicBar()
-            HStack {
-                ForEach([20, 10, 5], id: \.self) { s in
-                    Button("▶ Last \(s)s  \(Self.replayKey[s] ?? "")") { model.replay(seconds: s) }
-                }
-                Button("Reset peaks  C") { model.resetReadings() }
-                Button("Report a bug  ⌘I") { model.showBugReport = true }
-                if let saved = model.bugSaved {
-                    Text("Saved report \(saved)").foregroundStyle(green).font(.callout)
-                }
-                Spacer()
-                WhatsNewRow(feed: AppModel.whatsNew, logger: SessionLog.shared.bugLogger) { model.showWhatsNew = true }
-                    .frame(maxWidth: 420)
-            }
-            StatusLine()
-            if let error = model.micError {
-                Text(error).foregroundStyle(red).font(.callout)
-            }
-            HStack(spacing: 8) {
-                VStack(spacing: 8) {
-                    Plot(title: "Waveform (auto-zoomed)") { WaveformShape(samples: model.waveform) }
-                    Plot(title: "Spectrum") { SpectrumView() }
-                    Plot(title: "Spectrogram (0–8 kHz)") { SpectrogramView() }
-                }
-                Plot(title: "Level dBFS") { MeterView() }.frame(width: 110)
-            }
-            if model.replayOpen { ReplayPanel().frame(height: 210) }
-        }
-        .padding(12)
-        .background(Color(red: 0.08, green: 0.09, blue: 0.11))
-        .foregroundStyle(Color(white: 0.85))
-        .sheet(isPresented: Binding(get: { model.showBugReport }, set: { model.showBugReport = $0 })) {
-            BugReportSheet().environment(model)
-        }
-        .sheet(isPresented: Binding(get: { model.showWhatsNew }, set: { model.showWhatsNew = $0 })) {
-            VStack(spacing: 0) {
-                WhatsNewView(feed: AppModel.whatsNew, logger: SessionLog.shared.bugLogger, from: "sheet")
-                HStack {
-                    Spacer()
-                    Button("Done") { model.showWhatsNew = false }.keyboardShortcut(.cancelAction)
-                }
-                .padding(12)
-            }
-            .frame(width: 520, height: 560)
-        }
-    }
+/// The Mac names each control's key on it; a touch screen has none to name.
+#if os(macOS)
+let hasKeys = true
+#else
+let hasKeys = false
+#endif
 
-    static let replayKey = [20: "R", 10: "T", 5: "F"]
-}
+/// A control's label with its key on the Mac ("Play  ␣").
+func keyed(_ label: String, _ key: String) -> String { hasKeys ? "\(label)  \(key)" : label }
 
-/// Story 006: ⌘I, a sentence, Return. Keys typed here reach the text field, never the transport (`Keys`).
-private struct BugReportSheet: View {
-    @Environment(AppModel.self) private var model
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Report a bug").font(.title3.bold())
-            Text(
-                "Saved with the last 20 seconds the mic heard, the session log, the mic's readings and the replay's state. Nothing leaves this Mac."
-            )
-            .font(.callout).foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            TextField("What went wrong?", text: Binding(get: { model.bugNote }, set: { model.bugNote = $0 }))
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { model.saveBug() }
-            HStack {
-                Spacer()
-                Button("Cancel") {
-                    model.bugNote = ""
-                    model.showBugReport = false
-                }
-                .keyboardShortcut(.cancelAction)
-                Button("Save and Another") { model.saveBug(another: true) }
-                    .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(model.bugNote.trimmingCharacters(in: .whitespaces).isEmpty)
-                Button("Save Report") { model.saveBug() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(model.bugNote.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-        }
-        .padding(20)
-        .frame(width: 440)
-    }
-}
-
-private struct MicBar: View {
+/// The mics, numbered for their keys on the Mac; scrolls sideways when they do not fit (a phone).
+struct MicBar: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         HStack(spacing: 6) {
             Text("Mic").font(.headline)
-            ForEach(Array(model.mics.enumerated()), id: \.element.id) { i, m in
-                let selected = m.uid == model.mic?.uid
-                Button {
-                    model.select(m)
-                } label: {
-                    Text(i < 9 ? "\(i + 1)  \(m.name)" : m.name).lineLimit(1)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(
-                            selected ? blue.opacity(0.85) : Color.white.opacity(0.08), in: .rect(cornerRadius: 6)
-                        )
-                        .foregroundStyle(selected ? .white : Color(white: 0.85))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(Array(model.mics.enumerated()), id: \.element.id) { i, m in
+                        let selected = m.uid == model.mic?.uid
+                        Button {
+                            model.select(m)
+                        } label: {
+                            Text(i < 9 && hasKeys ? "\(i + 1)  \(m.name)" : m.name).lineLimit(1)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(
+                                    selected ? blue.opacity(0.85) : Color.white.opacity(0.08),
+                                    in: .rect(cornerRadius: 6)
+                                )
+                                .foregroundStyle(selected ? .white : Color(white: 0.85))
+                        }
+                        .buttonStyle(.plain)
+                        .help(
+                            m.isBluetooth
+                                ? "\(m.name): Bluetooth — opening it switches the headset to low-quality call mode"
+                                : m.name)
+                    }
                 }
-                .buttonStyle(.plain)
-                .help(
-                    m.isBluetooth
-                        ? "\(m.name): Bluetooth — opening it switches the headset to low-quality call mode" : m.name)
             }
-            Spacer()
         }
     }
 }
 
-private struct StatusLine: View {
+/// The readings in one line, or two when the screen is narrow.
+struct StatusLine: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         let floor = model.noiseFloorDB.map { String(format: "%.1f", $0) } ?? "—"
-        HStack(spacing: 14) {
-            Text(String(format: "RMS %6.1f dB   peak %6.1f dB", model.rmsDB, model.peakDB))
-            Text("floor \(floor) dB")
-            Text(String(format: "dominant %6.0f Hz", model.dominantHz))
-            Text("pitch \(noteName(model.pitchHz))")
-            Text("clips \(model.clips)").foregroundStyle(model.clips > 0 ? red : Color(white: 0.85))
-            Text(model.hint.rawValue).foregroundStyle(model.hint == .good ? green : amber)
+        let level = Text(String(format: "RMS %6.1f dB   peak %6.1f dB", model.rmsDB, model.peakDB))
+        let floorText = Text("floor \(floor) dB")
+        let dominant = Text(String(format: "dominant %6.0f Hz", model.dominantHz))
+        let pitch = Text("pitch \(noteName(model.pitchHz))")
+        let clips = Text("clips \(model.clips)").foregroundStyle(model.clips > 0 ? red : Color(white: 0.85))
+        let hint = Text(model.hint.rawValue).foregroundStyle(model.hint == .good ? green : amber)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) {
+                level; floorText; dominant; pitch; clips; hint
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 12) {
+                    level; floorText
+                }
+                HStack(spacing: 12) {
+                    dominant; pitch; clips
+                }
+                hint
+            }
         }
         .font(.system(size: 13, design: .monospaced))
     }
 }
 
-private struct Plot<Content: View>: View {
+struct Plot<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
 
@@ -162,7 +102,7 @@ private struct Plot<Content: View>: View {
 }
 
 /// The scope, scaled to its own peak so a quiet mic still fills it.
-private struct WaveformShape: View {
+struct WaveformShape: View {
     let samples: [Float]
 
     var body: some View {
@@ -190,7 +130,7 @@ private struct WaveformShape: View {
 }
 
 /// Log-frequency spectrum, -110…0 dBFS, with a decaying peak line.
-private struct SpectrumView: View {
+struct SpectrumView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -245,7 +185,7 @@ private struct SpectrumView: View {
     }
 }
 
-private struct SpectrogramView: View {
+struct SpectrogramView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -265,7 +205,7 @@ private struct SpectrogramView: View {
 }
 
 /// RMS (green) and peak (blue) bars, -60…0 dBFS, the held peak in red, guides at -18 and -6.
-private struct MeterView: View {
+struct MeterView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -294,8 +234,9 @@ private struct MeterView: View {
     }
 }
 
-/// The replay: the clip's envelope with a playhead (click or drag to seek), the transport and the processing toggles.
-private struct ReplayPanel: View {
+/// The replay: the clip's envelope with a playhead (click or drag to seek), the transport and the processing toggles,
+/// in one row, or two when the screen is narrow (a phone).
+struct ReplayPanel: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -335,23 +276,47 @@ private struct ReplayPanel: View {
                     })
             }
             .background(panel, in: .rect(cornerRadius: 6))
-            HStack(spacing: 10) {
-                Button(model.playing ? "⏸ Pause  ␣" : "▶ Play  ␣") { model.togglePlay() }.frame(width: 110)
-                Button("↺ Replay  A") { model.restart() }
-                Slider(
-                    value: Binding(get: { Double(model.position) }, set: { model.seek(to: Int($0)) }),
-                    in: 0...Double(max(1, model.replayLength)))
-                Toggle(
-                    "Noise reduction  N",
-                    isOn: Binding(
-                        get: { model.processing.noiseReduction }, set: { model.processing.noiseReduction = $0 }))
-                Toggle(
-                    "Voice boost  B",
-                    isOn: Binding(get: { model.processing.voiceBoost }, set: { model.processing.voiceBoost = $0 }))
-                Button("✕ Close  Esc") { model.closeReplay() }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    transport; toggles; close
+                }
+                VStack(spacing: 6) {
+                    HStack(spacing: 10) {
+                        transport; close
+                    }
+                    HStack(spacing: 16) { toggles }
+                }
             }
         }
         .padding(8)
         .background(Color.white.opacity(0.04), in: .rect(cornerRadius: 8))
+    }
+
+    @ViewBuilder private var transport: some View {
+        Button(model.playing ? keyed("⏸ Pause", "␣") : keyed("▶ Play", "␣")) { model.togglePlay() }
+            .frame(minWidth: 80)
+        Button(keyed("↺ Replay", "A")) { model.restart() }
+        Slider(
+            value: Binding(get: { Double(model.position) }, set: { model.seek(to: Int($0)) }),
+            in: 0...Double(max(1, model.replayLength))
+        )
+        .frame(minWidth: 120)
+    }
+
+    @ViewBuilder private var toggles: some View {
+        Toggle(
+            keyed("Noise reduction", "N"),
+            isOn: Binding(get: { model.processing.noiseReduction }, set: { model.processing.noiseReduction = $0 })
+        )
+        .fixedSize()
+        Toggle(
+            keyed("Voice boost", "B"),
+            isOn: Binding(get: { model.processing.voiceBoost }, set: { model.processing.voiceBoost = $0 })
+        )
+        .fixedSize()
+    }
+
+    private var close: some View {
+        Button(keyed("✕ Close", "Esc")) { model.closeReplay() }
     }
 }

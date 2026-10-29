@@ -16,7 +16,12 @@ extension AppModel {
         info.app = "Audio Debugger"
         info.commit = buildCommit
         let v = ProcessInfo.processInfo.operatingSystemVersion
-        info.device = "\(BugAppInfo.hardwareModel()) macOS \(v.majorVersion).\(v.minorVersion)"
+        #if os(macOS)
+        let system = "macOS"
+        #else
+        let system = "iOS"
+        #endif
+        info.device = "\(BugAppInfo.hardwareModel()) \(system) \(v.majorVersion).\(v.minorVersion)"
         return info
     }()
 

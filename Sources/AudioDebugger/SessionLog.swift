@@ -20,11 +20,16 @@ final class SessionLog: @unchecked Sendable {
         return f
     }()
 
-    /// Where the logs, bug reports (BugKit's `bugs.jsonl` and `bugs/`) and crash files live: the bug-kit listener's
-    /// `mac_dir`. A self-test keeps its own, `AudioDebugger/selftest/`, so its scripted runs never get filed.
+    /// Where the logs, bug reports (BugKit's `bugs.jsonl` and `bugs/`) and crash files live: on the Mac the bug-kit
+    /// listener's `mac_dir`, on iOS the app's Documents, which the listener pulls from a paired device. A self-test
+    /// keeps its own, `selftest/` inside it, so its scripted runs never get filed.
     static var root: URL {
+        #if os(macOS)
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("AudioDebugger", isDirectory: true)
+        #else
+        let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        #endif
         return Launch.scripted ? base.appendingPathComponent("selftest", isDirectory: true) : base
     }
 
