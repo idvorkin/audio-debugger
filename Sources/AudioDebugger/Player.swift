@@ -61,12 +61,16 @@ final class Player {
         state.withLock { swap(&old, &$0) }
         old = State()  // released outside the lock
         stopEngine()
+        engineRate = 0  // closed on purpose: `resume` must not bring it back
     }
 
     /// An interruption (a call, Siri, an alarm) stops the engine and nothing restarts it; without this, Play would
     /// show Pause over silence with the playhead frozen. Rebuilt on the same transport, as an output change is.
+    /// A rebuild that failed (pressed while the interruption still holds the session) leaves no engine, so the next
+    /// press tries again. The transport is paused first: the interruption stopped the sound, so Play must play.
     private func resume() {
-        guard let engine, !engine.isRunning else { return }
+        guard engine?.isRunning != true, engineRate > 0 else { return }
+        state.withLock { $0.transport.pause() }
         do {
             try makeEngine(sampleRate: engineRate)
             Log.replay.info("playback engine was stopped; rebuilt")
