@@ -44,7 +44,7 @@ extension AppModel {
             store: BugStore(documents: SessionLog.root), info: Self.bugAppInfo, logger: SessionLog.shared.bugLogger,
             copySessionLog: true, writeReportJSON: true)
         let screen = replayOpen ? "replay" : "live", context = bugContext(), position = SessionLog.shared.position
-        let audio = capture.last(seconds: replaySeconds), rate = capture.sampleRate
+        let (audio, rate) = capture.last(seconds: replaySeconds)
         Task.detached {
             let report = await writer.save(
                 note: note, screen: screen, context: context, screenshotPNG: nil, log: position,
