@@ -81,6 +81,13 @@ bug-kit listener reads that root as a local Mac app (`mac_dir` in `~/.config/bug
 - **Keyboard first.** Every action has a key (see `Keys` and the stories); the mouse is never required.
 - **Edit files with the Read, Edit and Write tools**, not sed or Python in the shell. Never `git add -A`.
 - **Audio stays on this Mac.** Nothing is uploaded; the only audio written to disk is a bug report's WAV.
+- **One no-mistakes run per train** (Igor, 2026-10-11, `~/tmp/agent/locks/PIPELINE-RULES.md`), always through
+  `~/gits/mac-driver/bin/pipeline-slot`. Finish the whole stack before the first push to the gate. Don't push while a
+  run is in flight, unless review or test asked for that fix. Never restart the no-mistakes daemon or reboot while
+  runs are active. Its test step is host-only (`.no-mistakes.yaml`): live simulator, phone and mic checks happen
+  once, in the build turn, and go in the PR body.
+- **Review settles in one fix round.** In round 1, fix every error and warning together. In later rounds, fix
+  errors only and decide the info findings in one pass. At most 2 review rounds; file the rest as beads.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:1105d646 -->
 ## Beads Issue Tracker
