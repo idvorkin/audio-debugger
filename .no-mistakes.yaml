@@ -1,0 +1,37 @@
+# no-mistakes gate config. commands, review, and no_ci are read only from main.
+
+commands:
+  test: "just test"
+
+# No .github/workflows; `just test` (host AudioCore tests, ~2 s) is the whole local suite.
+no_ci: true
+
+# Igor's pipeline rules (2026-10-11, ~/tmp/agent/locks/PIPELINE-RULES.md): the test step is host-only; live checks
+# are the driving session's.
+test:
+  instructions: |
+    Host rung only: run the touched module's host tests (through `just test`) or `just lint`, and read the diff.
+    Do not build for, create, or boot a simulator, and do not run xcodebuild against a simulator or device (no
+    `just ios-build`, `just ios-selftest` or `just iphone`); do not run `just selftest`, `just app` or `just run`
+    either, which open or build the Mac app and use the mic. The driving session owns live evidence under the build
+    turn and records it in the PR body. List what only the simulator, the phone or a real mic can show as "to verify
+    live" in the report. Do not re-run `just test`: the gate already ran it.
+
+review:
+  path_instructions:
+    - path: "Sources/AudioCore/*.swift"
+      instructions: |
+        Platform-free by design: no AppKit/UIKit/AVFoundation imports here. This is the host-testable module
+        (levels, FFT spectrum, pitch, replay ring, transport, denoise, voice boost, spectrogram); new behaviour needs
+        a Tests case, not just app-layer coverage.
+    - path: "Sources/AudioDebugger/**/*.swift"
+      instructions: |
+        App layer stays thin; maths belongs in AudioCore. No `@State` or other Xcode-only SwiftUI macros in shared
+        files (the Mac app builds with the Command Line Tools); iOS/ files may use them. Audio never leaves the
+        device: flag any added network or upload path (BugKit's report delivery is the one exception). Every action
+        needs a key; the mouse is never required. The render callback (Player) must not block or allocate.
+    - path: "docs/stories/*.md"
+      instructions: |
+        This is the spec (Mike Cohn use case + Gherkin), not narrative docs. A behaviour change adds a scenario or
+        edits acceptance criteria and updates the Status: line with the commit and verifying rung (host / selftest /
+        simulator / phone); story numbers are never reused. Do not request test coverage for story-only edits.
