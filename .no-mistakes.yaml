@@ -24,12 +24,18 @@ review:
         Platform-free by design: no AppKit/UIKit/AVFoundation imports here. This is the host-testable module
         (levels, FFT spectrum, pitch, replay ring, transport, denoise, voice boost, spectrogram); new behaviour needs
         a Tests case, not just app-layer coverage.
-    - path: "Sources/AudioDebugger/**/*.swift"
+    # A trailing `/**` is a prefix match; anything else is Go's path.Match, where `**/*.swift` skips the top level.
+    - path: "Sources/AudioDebugger/**"
       instructions: |
         App layer stays thin; maths belongs in AudioCore. No `@State` or other Xcode-only SwiftUI macros in shared
         files (the Mac app builds with the Command Line Tools); iOS/ files may use them. Audio never leaves the
         device: flag any added network or upload path (BugKit's report delivery is the one exception). Every action
         needs a key; the mouse is never required. The render callback (Player) must not block or allocate.
+    - path: "iOS/**"
+      instructions: |
+        The iPhone and iPad app's own files (the audio session, the input tap, PhoneView, BugKit's reporter); they
+        may use `@State`. After a change to shared code, `just ios-build` must still build: a shared file that uses
+        a macOS-only API needs `#if os(macOS)`. Background capture (UIBackgroundModes audio) is Igor's choice.
     - path: "docs/stories/*.md"
       instructions: |
         This is the spec (Mike Cohn use case + Gherkin), not narrative docs. A behaviour change adds a scenario or
