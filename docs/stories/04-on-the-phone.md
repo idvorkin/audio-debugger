@@ -49,6 +49,14 @@ full quality while the phone's mic is measured.
   - Given the app is open on the built-in mic
   - When I plug in a USB mic or a wired headset
   - Then the list shows it, and the app switches to it
+- Scenario: A Bluetooth mic takes its time
+  - Given the app is open in a car with its hands-free mic listed
+  - When I tap the car's mic
+  - Then the app stays responsive while the route comes up, and a second tap meanwhile does not reopen it
+
+**Notes**: Opening a mic runs off the main thread (ad-pdv): the car's mic took 1.8 s to open, which MetricKit
+reported as a hang on 12d285f. The fix's commit (mic-open-off-main branch) logs each open's `ms`: the Mac's built-in
+mic takes 1.3 s too (selftest). The Bluetooth scenario's phone rung is Igor's next drive.
 
 ## 011 — The replay keeps listening in the background
 

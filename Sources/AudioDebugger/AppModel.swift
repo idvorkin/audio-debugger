@@ -86,6 +86,9 @@ final class AppModel {
     private var pendingRetry: DispatchWorkItem?
     /// Mics that failed to open since the device list last changed: skipped when falling back.
     private var failed: Set<String> = []
+    /// The mic being opened on the capture queue; only the newest open's result counts.
+    private var opening: Mic?
+    private var openGeneration = 0
     private var processGeneration = 0
 
     init() {
@@ -141,18 +144,34 @@ final class AppModel {
         SessionLog.shared.event("mics", ["names": mics.map(\.name)])
         let named = Launch.micName.flatMap { n in mics.first { $0.name.localizedCaseInsensitiveContains(n) }?.uid }
         let wanted = named ?? UserDefaults.standard.string(forKey: Key.mic)
-        if let mic, mic.uid == Mics.choose(from: mics, wanted: wanted)?.uid, mics.contains(mic) { return }
-        openBest(wanted: wanted)
+        // The mic being opened counts as the current one: reopening it would only add another wait and gap.
+        if let current = opening ?? mic, current.uid == Mics.choose(from: mics, wanted: wanted)?.uid,
+            mics.contains(current)
+        {
+            return
+        }
+        // Retries too: this chain may supersede captureFailed's, whose retry would then never run. Not without the
+        // permission, where every mic fails and the retries would hide "Microphone access denied".
+        openBest(wanted: wanted) { [weak self] ok in
+            if !ok, AVCaptureDevice.authorizationStatus(for: .audio) == .authorized { self?.retry(after: 3) }
+        }
     }
 
     /// Open the wanted mic, else the next best that has not failed this round; `mic` is only ever an open one.
-    private func openBest(wanted: String?) {
-        while let pick = Mics.choose(from: mics.filter { !failed.contains($0.uid) }, wanted: wanted) {
-            if open(pick) { return }
+    /// `done` says whether one opened, unless a newer open superseded this one.
+    private func openBest(wanted: String?, done: @escaping (Bool) -> Void = { _ in }) {
+        guard let pick = Mics.choose(from: mics.filter { !failed.contains($0.uid) }, wanted: wanted) else {
+            openGeneration += 1  // an open still in flight is closed by this stop, so its result must not count
+            opening = nil
+            capture.stop()
+            mic = nil
+            if micError == nil { micError = "No microphone found." }
+            done(false)
+            return
         }
-        capture.stop()
-        mic = nil
-        if micError == nil { micError = "No microphone found." }
+        open(pick) { [weak self] ok in
+            if ok { done(true) } else { self?.openBest(wanted: wanted, done: done) }
+        }
     }
 
     /// The user picked a mic: remember it, so it comes back by itself after being unplugged. If it will not open,
@@ -160,11 +179,16 @@ final class AppModel {
     func select(_ m: Mic) {
         UserDefaults.standard.set(m.uid, forKey: Key.mic)
         SessionLog.shared.event("select_mic", ["name": m.name])
+        // A second tap while it is still opening (taps queued behind the hang did this) would only open it again.
+        guard opening != m else { return }
         failed.remove(m.uid)
-        if !open(m) {
+        open(m) { [weak self] ok in
+            guard let self, !ok else { return }
             let why = micError
-            openBest(wanted: nil)
-            micError = why
+            openBest(wanted: nil) { [weak self] ok in
+                self?.micError = why
+                if !ok { self?.retry(after: 3) }
+            }
         }
     }
 
@@ -176,6 +200,11 @@ final class AppModel {
     /// The running session failed (the device went away, a call took the mic): reopen, at most once per 2 s, and
     /// while that does not open any mic keep retrying every 3 s, so capture never stays stopped silently.
     private func captureFailed() {
+        // A mic is being opened, which closes the failing one first: reopening the old mic here would undo the pick.
+        guard opening == nil else {
+            Log.mic.info("capture failed while another mic opens; that open goes on")
+            return
+        }
         let wait = 2 - Date().timeIntervalSince(lastReopen)
         guard wait <= 0 else {
             micError = "Capture failed; retrying in \(Int(wait.rounded(.up))) s"
@@ -188,8 +217,9 @@ final class AppModel {
         let uid = mic?.uid ?? UserDefaults.standard.string(forKey: Key.mic)
         mics = Mics.all()
         failed = []  // each retry is a new chance for every mic: an interruption fails them all for a while
-        openBest(wanted: uid)
-        if mic == nil { retry(after: 3) }
+        openBest(wanted: uid) { [weak self] ok in
+            if !ok { self?.retry(after: 3) }
+        }
     }
 
     /// One pending retry at a time: two failures together (an interruption and a route change) must not start two
@@ -207,31 +237,42 @@ final class AppModel {
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: item)
     }
 
-    @discardableResult
-    private func open(_ m: Mic) -> Bool {
-        do {
-            try capture.start(uid: m.uid)
-            mic = m
-            micError = nil
-            pendingRetry?.cancel()
-            pendingRetry = nil
-            let rate = capture.sampleRate
-            analyzer = SpectrumAnalyzer(size: scopeSize, sampleRate: rate)
-            pitch = PitchDetector(size: scopeSize, sampleRate: Float(rate))
-            frequencies = analyzer.frequencies
-            resetReadings()
-            Log.mic.info(
-                "opened \(m.name, privacy: .public) (\(m.uid, privacy: .public)) at \(rate, privacy: .public) Hz")
-            SessionLog.shared.event("mic_open", ["name": m.name, "uid": m.uid, "rate": rate])
-            return true
-        } catch {
-            // Capture.start stopped the old session first, so nothing is open now.
-            mic = nil
-            failed.insert(m.uid)
-            micError = "\(m.name): \(error)"
-            SessionLog.shared.event("mic_error", ["name": m.name, "error": "\(error)"])
-            Log.mic.error("could not open \(m.name, privacy: .public): \(String(describing: error), privacy: .public)")
-            return false
+    /// Opens `m` off the main thread; `done` says whether it opened. A newer open supersedes this one: its result is
+    /// dropped and `done` never runs, as the capture queue has already moved on to the newer mic.
+    private func open(_ m: Mic, done: @escaping (Bool) -> Void) {
+        openGeneration += 1
+        let generation = openGeneration
+        opening = m
+        let asked = Date()
+        capture.start(uid: m.uid) { [weak self] result in
+            guard let self, generation == openGeneration else { return }
+            opening = nil
+            let ms = Int(Date().timeIntervalSince(asked) * 1000)
+            switch result {
+            case .success(let rate):
+                mic = m
+                micError = nil
+                pendingRetry?.cancel()
+                pendingRetry = nil
+                analyzer = SpectrumAnalyzer(size: scopeSize, sampleRate: rate)
+                pitch = PitchDetector(size: scopeSize, sampleRate: Float(rate))
+                frequencies = analyzer.frequencies
+                resetReadings()
+                Log.mic.info(
+                    "opened \(m.name, privacy: .public) (\(m.uid, privacy: .public)) at \(rate, privacy: .public) Hz in \(ms, privacy: .public) ms"
+                )
+                SessionLog.shared.event("mic_open", ["name": m.name, "uid": m.uid, "rate": rate, "ms": ms])
+                done(true)
+            case .failure(let error):
+                // Capture stopped the old session first, so nothing is open now.
+                mic = nil
+                failed.insert(m.uid)
+                micError = "\(m.name): \(error)"
+                SessionLog.shared.event("mic_error", ["name": m.name, "error": "\(error)", "ms": ms])
+                Log.mic.error(
+                    "could not open \(m.name, privacy: .public): \(String(describing: error), privacy: .public)")
+                done(false)
+            }
         }
     }
 
@@ -306,13 +347,13 @@ final class AppModel {
 
     /// Open replay on the last `seconds` of the mic, processed as the toggles say, and play it.
     func replay(seconds: Int) {
-        let clip = capture.last(seconds: seconds)
+        let (clip, rate) = capture.last(seconds: seconds)
         guard !clip.isEmpty else {
             Log.replay.info("replay \(seconds, privacy: .public)s: nothing captured yet")
             return
         }
         rawClip = clip
-        clipRate = capture.sampleRate
+        clipRate = rate
         processed = [:]
         replayLength = clip.count
         replayOpen = true

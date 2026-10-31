@@ -26,9 +26,8 @@ extension AppModel {
                 // At save, a moment after the dialog opened: the ring keeps the last 20 s either way.
                 extraFiles: { folder in
                     let name = "mic-last-\(replaySeconds)s.wav"
-                    try writeWAV(
-                        capture.last(seconds: replaySeconds), sampleRate: capture.sampleRate,
-                        to: folder.appendingPathComponent(name))
+                    let (audio, rate) = capture.last(seconds: replaySeconds)
+                    try writeWAV(audio, sampleRate: rate, to: folder.appendingPathComponent(name))
                     return [name]
                 },
                 flushLog: { SessionLog.shared.flush() }),
