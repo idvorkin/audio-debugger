@@ -36,7 +36,7 @@ gain or voice processing.
 Bluetooth last, since opening AirPods' mic drops them to call quality.
 **Status**: In progress. The Bluetooth scenario's fix is on the mic-open-off-main branch (ad-pdv; just test, Mac
 selftest, iOS simulator selftest); its phone rung is pending Igor's next drive. Leaving the car's mic (ad-944):
-logging only so far (0deb926; just test, iOS simulator selftest logs `audio_route`), the fix waits for the next
+logging only so far (0deb926, 647ea6b; just test, iOS simulator selftest logs `audio_route`), the fix waits for the next
 drive's log. The other two scenarios: Planned.
 
 **Use Case**: As Igor, I want the phone to open the right mic by itself, so that my AirPods keep playing music in
@@ -64,7 +64,8 @@ full quality while the phone's mic is measured.
 **Notes**: ad-944 (2026-11-05, Igor in the Tesla: "it looks like I'm still connected to the Tesla even though I
 clicked iPhone"): the log and the screenshot show iPhone Microphone open and selected, but at 16 kHz, the car's
 call-mode rate, so the output most likely stayed on the car's hands-free link. Not yet proven: `audio_route` (on
-each open) and `route_change` (every change, with its reason) now log the inputs, outputs and session rate; the
+each open, failed ones too) and `route_change` (every change, with its reason and the previous route) now log the
+inputs, outputs, session rate, preferred input, category, mode, options and whether other audio plays; the
 fix waits for that log from the next drive. Opening a mic runs off the main thread (ad-pdv): the car's mic took
 1.8 s to open, which MetricKit reported as a hang on 12d285f. The fix's commit (mic-open-off-main branch) logs each open's `ms`: the Mac's built-in
 mic takes 1.3 s too (selftest). Without the mic permission a device change only refreshes the list and opens nothing,
