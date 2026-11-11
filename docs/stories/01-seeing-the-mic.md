@@ -4,7 +4,8 @@
 
 **Summary**: Every mic is a button; a number key switches; the choice is remembered and comes back when re-plugged.
 **Status**: Done (06c69ad, cb62d8a fallback on a mic that will not open; selftest: mic list and `--mic MacBook`;
-switching by key: run, Igor)
+switching by key: run, Igor). The choice, the fallback, the re-plug and `--mic` are host tests since the
+humble/mic-controller branch (`MicControllerTests`); the selftest still opens a real mic.
 **Why**: "Mic selection is hard to change" (the Python app's dropdown).
 
 **Use Case**: As Igor, I want to switch mics with one key, so that I can compare them while I talk.

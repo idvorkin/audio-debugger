@@ -1,4 +1,5 @@
 import AVFoundation
+import AudioCore
 
 /// iOS's mics: the audio session's input ports (built-in, wired headset, USB, Bluetooth), by port UID. The session
 /// picks which one the input engine hears (`setPreferredInput`, in `MicSource`).

@@ -1,3 +1,4 @@
+import AudioCore
 import CoreAudio
 import Foundation
 

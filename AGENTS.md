@@ -5,7 +5,8 @@ spectrum, spectrogram, level meter, noise floor, pitch, and an always-on 20-seco
 reduction and voice boost. The native port of `py/audio_scope.py` in idvorkin/settings, which went unresponsive
 (Qt drawing, FFTs and noise reduction all on one thread under the GIL). Built on magic-monitor-native's pattern.
 `Sources/AudioCore/` is the platform-free module (levels, FFT spectrum, pitch, replay ring, transport, denoise, voice
-boost, spectrogram pixels); `Sources/AudioDebugger/` is the app. A plain SwiftPM package.
+boost, spectrogram pixels, the mic choice and `MicController`'s open, fallback and retry chain);
+`Sources/AudioDebugger/` is the app. A plain SwiftPM package.
 
 ## Build
 
@@ -52,7 +53,8 @@ AVAudioEngine input tap; no aggregate device on iOS, and it runs in the backgrou
 
 | Piece | Where | What |
 |---|---|---|
-| mics | `Mics` | Core Audio device list (input channels, name, UID, transport), hot-plug listener, the choice: the remembered mic, else USB, else built-in, Bluetooth last (opening an AirPods mic drops them into call-quality mode, music and all) |
+| mics | `Mics`, `AudioCore/Mic` | Core Audio device list (input channels, name, UID, transport), hot-plug listener; `Mic.choose`: the remembered mic, else USB, else built-in, Bluetooth last (opening an AirPods mic drops them into call-quality mode, music and all) |
+| mic chain | `AudioCore/MicController` | open, fallback, retry: newest pick wins, 2 s reopen throttle, one 3 s retry pending, permission guard. Time comes in as a value; `AppModel.perform` carries out its effects. Host tests: `MicControllerTests` |
 | capture | `Capture` | `AVCaptureSession` on the mic by UID, mono float32 at the device rate, into a 20 s `RingBuffer` and a 4096-sample scope window under one lock. **Not AVAudioEngine**: on macOS its input runs through a private aggregate device, and on an input-only USB mic that delivered only zeros |
 | readings | `AppModel.tick` | 30 Hz on the main thread: RMS, peak, held peak, noise floor, FFT spectrum, pitch, a spectrogram column. Microseconds with vDSP |
 | replay | `Player` | its own `AVAudioEngine` on the default output, an `AVAudioSourceNode` pulling the clip through `Transport` on the render thread; mono into the main mixer feeds both ears. Pause, seek and processing swaps are state changes |

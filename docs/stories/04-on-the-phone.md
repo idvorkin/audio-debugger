@@ -58,7 +58,10 @@ full quality while the phone's mic is measured.
 **Notes**: Opening a mic runs off the main thread (ad-pdv): the car's mic took 1.8 s to open, which MetricKit
 reported as a hang on 12d285f. The fix's commit (mic-open-off-main branch) logs each open's `ms`: the Mac's built-in
 mic takes 1.3 s too (selftest). Without the mic permission a device change only refreshes the list and opens nothing,
-so "Microphone access denied" stays up (host harness with a fake mic; not yet run on selftest, simulator or phone).
+so "Microphone access denied" stays up (host tests, `MicControllerTests`; not yet run with a real denied permission).
+Since the humble/mic-controller branch the open, fallback and retry chain is `AudioCore/MicController`, and PR #3's
+harness scenarios are host tests: a second tap during an open, the newest pick winning, the opening mic counting as
+current, the AirPods-last choice. That the app stays responsive while a real route comes up is still the phone's.
 
 ## 011 — The replay keeps listening in the background
 
