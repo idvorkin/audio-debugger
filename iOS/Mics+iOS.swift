@@ -37,8 +37,17 @@ enum Mics {
             forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main
         ) { note in
             let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
-            // Every change is logged, ours included (ad-944: which way the output went when the mic changed).
-            SessionLog.shared.event("route_change", route().merging(["reason": raw ?? 0]) { $1 })
+            // Every change is logged, ours included (ad-944: which way the output went when the mic changed), with
+            // the route it came from; a missing reason logs null, not 0 (`.unknown`).
+            var fields = route()
+            fields["reason"] = raw as Any
+            if let previous = note.userInfo?[AVAudioSessionRouteChangePreviousRouteKey]
+                as? AVAudioSessionRouteDescription
+            {
+                fields["prev_inputs"] = ports(previous.inputs)
+                fields["prev_outputs"] = ports(previous.outputs)
+            }
+            SessionLog.shared.event("route_change", fields)
             guard let raw, let reason = AVAudioSession.RouteChangeReason(rawValue: raw),
                 reason == .newDeviceAvailable || reason == .oldDeviceUnavailable
             else { return }
@@ -46,17 +55,23 @@ enum Mics {
         }
     }
 
-    /// The session's route as it stands, for the log (ad-944): inputs and outputs as "name (port type)", and the
-    /// session's rate (16 kHz while a Bluetooth headset or car is in call mode).
+    /// The session's route as it stands, for the log (ad-944): inputs and outputs as "name (port type)", the
+    /// session's rate (16 kHz while a Bluetooth headset or car is in call mode), the input we asked for, the
+    /// category, mode and options (A2DP output needs `.allowBluetoothA2DP` still set), and whether other audio plays
+    /// (another app or the car's own voice session can hold the hands-free link).
     static func route() -> [String: Any] {
         let session = AVAudioSession.sharedInstance()
-        func ports(_ list: [AVAudioSessionPortDescription]) -> [String] {
-            list.map { "\($0.portName) (\($0.portType.rawValue))" }
-        }
+        let route = session.currentRoute  // one snapshot: inputs and outputs from the same moment
         return [
-            "inputs": ports(session.currentRoute.inputs), "outputs": ports(session.currentRoute.outputs),
-            "session_rate": session.sampleRate,
+            "inputs": ports(route.inputs), "outputs": ports(route.outputs), "session_rate": session.sampleRate,
+            "preferred": session.preferredInput?.portName as Any, "category": session.category.rawValue,
+            "mode": session.mode.rawValue, "options": session.categoryOptions.rawValue,
+            "other_audio": session.isOtherAudioPlaying,
         ]
+    }
+
+    private static func ports(_ list: [AVAudioSessionPortDescription]) -> [String] {
+        list.map { "\($0.portName) (\($0.portType.rawValue))" }
     }
 
     static func port(uid: String) -> AVAudioSessionPortDescription? {

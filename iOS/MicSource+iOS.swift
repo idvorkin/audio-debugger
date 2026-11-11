@@ -19,11 +19,19 @@ final class MicSource {
     ) throws {
         guard let port = Mics.port(uid: uid) else { throw CaptureError.noDevice }
         let session = AVAudioSession.sharedInstance()
-        try session.setPreferredInput(port)
-        try session.setActive(true)
-        // Read after activation: the input node's format is the route's, and it is 0 Hz without the permission.
-        let format = engine.inputNode.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else { throw CaptureError.noFormat }
+        let format: AVAudioFormat
+        do {
+            try session.setPreferredInput(port)
+            try session.setActive(true)
+            // Read after activation: the input node's format is the route's, and it is 0 Hz without the permission.
+            format = engine.inputNode.outputFormat(forBus: 0)
+            guard format.sampleRate > 0, format.channelCount > 0 else { throw CaptureError.noFormat }
+        } catch {
+            // ad-944: the route a failed open leaves behind, too.
+            SessionLog.shared.event(
+                "audio_route", Mics.route().merging(["asked": port.portName, "error": "\(error)"]) { $1 })
+            throw error
+        }
         self.format = format
         sampleRate = format.sampleRate
         name = session.currentRoute.inputs.first?.portName ?? port.portName
