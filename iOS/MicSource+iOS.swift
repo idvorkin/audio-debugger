@@ -29,6 +29,8 @@ final class MicSource {
         name = session.currentRoute.inputs.first?.portName ?? port.portName
         self.deliver = deliver
         self.onFailure = onFailure
+        // ad-944: the whole route once the mic is open, outputs included (a car can stay in call mode).
+        SessionLog.shared.event("audio_route", Mics.route().merging(["asked": port.portName]) { $1 })
         if name != port.portName {
             Log.mic.error(
                 "asked for \(port.portName, privacy: .public), the route has \(self.name, privacy: .public)")

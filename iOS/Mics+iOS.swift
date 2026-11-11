@@ -36,12 +36,27 @@ enum Mics {
         NotificationCenter.default.addObserver(
             forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main
         ) { note in
-            guard let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                let reason = AVAudioSession.RouteChangeReason(rawValue: raw),
+            let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+            // Every change is logged, ours included (ad-944: which way the output went when the mic changed).
+            SessionLog.shared.event("route_change", route().merging(["reason": raw ?? 0]) { $1 })
+            guard let raw, let reason = AVAudioSession.RouteChangeReason(rawValue: raw),
                 reason == .newDeviceAvailable || reason == .oldDeviceUnavailable
             else { return }
             handler()
         }
+    }
+
+    /// The session's route as it stands, for the log (ad-944): inputs and outputs as "name (port type)", and the
+    /// session's rate (16 kHz while a Bluetooth headset or car is in call mode).
+    static func route() -> [String: Any] {
+        let session = AVAudioSession.sharedInstance()
+        func ports(_ list: [AVAudioSessionPortDescription]) -> [String] {
+            list.map { "\($0.portName) (\($0.portType.rawValue))" }
+        }
+        return [
+            "inputs": ports(session.currentRoute.inputs), "outputs": ports(session.currentRoute.outputs),
+            "session_rate": session.sampleRate,
+        ]
     }
 
     static func port(uid: String) -> AVAudioSessionPortDescription? {
