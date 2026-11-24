@@ -41,6 +41,9 @@ AVAudioEngine input tap; no aggregate device on iOS, and it runs in the backgrou
   the 30 Hz readings meanwhile.
 - Phone deploys only when Igor asks; iPad only when he asks for the iPad.
 
+- **wasm builds and tests on Larry's Linux VM, not this Mac** (Igor, 2026-11-24). Apple's toolchain can't target
+  wasm; the VM has swiftly and the wasm SDK. The Mac does Xcode, simulators, signing and device installs. For a wasm
+  change, push the branch and ask Larry to build, test and post the module's size.
 - **Builds with the Command Line Tools, not Xcode.** No `@State` (its macro plugin ships only with Xcode): the model
   is an `@Observable` class held by the `App`, and views bind through `Binding(get:set:)`.
 - **Run tests with `just test`, not bare `swift test`**: it loads Swift Testing's macro library in-process, which

@@ -22,8 +22,8 @@ Lands after PR #11 merges. No code yet: this plan is for Igor's "do it".
    in Chrome and Safari, and H opens the bundled page from a file). Scenes are synthesised in JS (noise colours,
    hum, a formant-shaped "voice" burst pattern) at 16 kHz; "Use my mic" uses `getUserMedia` + an AudioWorklet
    posting 1024-sample blocks. Drawing is canvas at 30 Hz; the maths is all wasm.
-4. **Build**: `just wasm` (swift.org toolchain + its wasm SDK; this Mac has none: Apple's toolchain cannot target
-   wasm, so the build runs on the Linux box or after `swift sdk install`). Writes `docs/noise-demo.js`, committed so
+4. **Build**: `just wasm` (swift.org toolchain + its wasm SDK), run on Larry's Linux VM, which builds and tests all
+   wasm (Igor, 2026-11-24); the Mac does Xcode, simulators and signing. Writes `docs/noise-demo.js`, committed so
    Pages and `just app` need no toolchain; `just app` bundles it beside `noise.html`.
 
 ## Trade-offs
@@ -32,7 +32,7 @@ Lands after PR #11 merges. No code yet: this plan is for Igor's "do it".
 |---|---|---|---|
 | **Embedded Swift → wasm (recommended)** | ~50–200 KB | low for pure maths | needs the subset: no `Any`, existentials or Foundation; numeric code fits |
 | Full WASI SDK, no Foundation | ~1–3 MB | low | bigger download, still fine behind a button |
-| WASI SDK with FoundationEssentials (BoardWasm's way) | ~15 MB | low | too heavy for a page demo |
+| WASI SDK with FoundationEssentials (BoardWasm's way) | BoardWasm is 14.9 MB; this module unmeasured, likely MBs | low | too heavy for a page demo |
 | Port the maths to JS | ~10 KB | medium | two copies of the maths drift apart: the thing Igor wants avoided |
 
 ## Tests
