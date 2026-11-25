@@ -72,6 +72,7 @@ bug-kit listener reads that root as a local Mac app (`mac_dir` in `~/.config/bug
 
 ## Rules
 
+- **Apple docs and Simulator/Previews: follow the `ios-codev` skill** (Igor, 2026-11-24). It covers looking up Apple APIs on Sosumi before coding, and previews first, then the Simulator, from the CLI on the Mac only. Read [`skills/ios-codev/SKILL.md`](https://github.com/idvorkin/chop-conventions/blob/main/skills/ios-codev/SKILL.md) (lands with chop-conventions #275), or `~/.claude/skills/ios-codev/SKILL.md` once the skill is symlinked.
 - **Every feature or behaviour change updates the user stories** (`docs/stories/`) in the same commit: Cohn use
   case + Gherkin, a `Status:` line naming the commit and the rung it was verified on.
 - **Test ladder**: `just test` → `just selftest` (verified from the log) → `just run` (a real mic and Igor's ears).
