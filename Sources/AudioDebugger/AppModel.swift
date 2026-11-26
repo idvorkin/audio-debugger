@@ -76,6 +76,10 @@ final class AppModel {
     var bugNote = ""
     var bugSaved: String?
     var showWhatsNew = false
+    /// Story 016: the key sheet (?).
+    var showKeys = false
+    /// The iPhone's and iPad's About sheet: the iPad's keyboard commands stay quiet behind it.
+    var showAbout = false
     /// The folder of the sample just saved (Sample.swift), shown for a few seconds.
     var sampleSaved: String?
 

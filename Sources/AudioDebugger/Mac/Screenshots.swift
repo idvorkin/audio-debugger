@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// `just screenshots`: the app, muted, sizes its window, lets the spectrogram fill, then names its window (a
 /// `<shot>.wid` file holding the window number) for each shot; the recipe captures it with `screencapture -l`, which
@@ -24,8 +25,36 @@ enum Screenshots {
             mark("replay", window, dir)
             await wait(2)
             model.closeReplay()
+            // Story 016: the key sheet. It is a window attached to the main one, which `screencapture -l` can't grab
+            // while the app is in the background ("could not create image from window"), so the app draws the sheet's
+            // table to keys.png itself and the recipe copies it.
+            renderKeys(into: dir, scale: window.backingScaleFactor)
             Log.selftest.info("screenshots done")
             quitApp()
+        }
+    }
+
+    /// The key sheet's table, as the dark sheet shows it, drawn to keys.png without Screen Recording.
+    private static func renderKeys(into dir: URL, scale: CGFloat) {
+        let view = KeyList()
+            .frame(width: 520, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(20)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .environment(\.colorScheme, .dark)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = scale
+        guard let image = renderer.cgImage,
+            let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+        else {
+            Log.selftest.error("screenshot keys: nothing drawn")
+            return
+        }
+        do {
+            try png.write(to: dir.appendingPathComponent("keys.png"))
+            Log.selftest.info("screenshot keys: drawn \(image.width)x\(image.height)")
+        } catch {
+            Log.selftest.error("screenshot keys: \(error.localizedDescription, privacy: .public)")
         }
     }
 

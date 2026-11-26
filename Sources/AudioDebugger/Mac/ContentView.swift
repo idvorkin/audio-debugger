@@ -13,11 +13,12 @@ struct ContentView: View {
             MicBar()
             InputLine()
             HStack {
-                ForEach([20, 10, 5], id: \.self) { s in
+                ForEach([5, 10, 20], id: \.self) { s in
                     Button("▶ Last \(s)s  \(Self.replayKey[s] ?? "")") { model.replay(seconds: s) }
                 }
                 Button("Reset peaks  C") { model.resetReadings() }
                 Button("Report a bug  ⌘I") { model.showBugReport = true }
+                Button("Keys  ?") { model.showKeys = true }
                 if let saved = model.bugSaved {
                     Text("Saved report \(saved)").foregroundStyle(green).font(.callout)
                 }
@@ -45,6 +46,9 @@ struct ContentView: View {
         .sheet(isPresented: Binding(get: { model.showBugReport }, set: { model.showBugReport = $0 })) {
             BugReportSheet().environment(model)
         }
+        .sheet(isPresented: Binding(get: { model.showKeys }, set: { model.showKeys = $0 })) {
+            KeySheet().environment(model)
+        }
         .sheet(isPresented: Binding(get: { model.showWhatsNew }, set: { model.showWhatsNew = $0 })) {
             VStack(spacing: 0) {
                 WhatsNewView(feed: AppModel.whatsNew, logger: SessionLog.shared.bugLogger, from: "sheet")
@@ -58,7 +62,7 @@ struct ContentView: View {
         }
     }
 
-    static let replayKey = [20: "R", 10: "T", 5: "F"]
+    static let replayKey = [5: "R", 10: "T", 20: "Y"]
 }
 
 /// Story 006: ⌘I, a sentence, Return. Keys typed here reach the text field, never the transport (`Keys`).

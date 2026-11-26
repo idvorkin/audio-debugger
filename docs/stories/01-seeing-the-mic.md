@@ -121,3 +121,43 @@ spectrogram's black band always agree. On the Mac, call mode is a Bluetooth mic 
 switches the headset); on the phone it is the route's input being a hands-free (HFP) Bluetooth port. Before this
 story the spectrogram stretched a narrowband route's 0–4 kHz over its whole height, so the top was never black and
 its marks were wrong. Each change is logged as `input_format` with the line's text.
+
+## 016 — Every key, one key away
+
+**Summary**: ? opens a key sheet listing every key and what it does, the same table as "Keys at a glance". On an
+iPad or iPhone with a keyboard the keys are the app's keyboard commands, so holding ⌘ lists them, and ⌘. closes
+the replay (the iPad's Folio keyboard has no Esc).
+**Status**: Built in bcaa22a (ad-49f). Verified on `just selftest` (Mac: R, the sheet blocks Y, Esc closes it, Y
+replays) and `just ios-build`; the iPad keyboard check is still to do.
+**Why**: "Should probably show me keyboard shortcuts" (Igor, 2026-11-26).
+
+**Use Case**: As Igor, I want to see every key without opening the repo, so that I can use the app from the
+keyboard on the Mac and the iPad.
+
+**Acceptance Criteria**
+
+- Scenario: The key sheet
+  - Given the app is open
+  - When I press ?
+  - Then a sheet lists every key in the "Keys at a glance" table with its action, and Esc closes it
+- Scenario: Keys do nothing behind the sheet
+  - Given the key sheet is open
+  - When I press R or 3
+  - Then no replay starts and no mic switches
+- Scenario: Holding ⌘ on the iPad
+  - Given an iPad with a hardware keyboard
+  - When I hold ⌘
+  - Then the system's keyboard-shortcut list shows the replay, transport, processing, save and help keys
+- Scenario: No Esc on the Folio
+  - Given a replay is open on an iPad whose keyboard has no Esc
+  - When I press ⌘.
+  - Then the replay closes; with the key sheet open, ⌘. closes the sheet first
+- Scenario: Typing is still typing
+  - Given the bug report's note is being typed on an iPad keyboard
+  - When I type "r" or "n"
+  - Then the letters go into the note, and no replay starts and nothing toggles
+
+**Notes**: One table in the code drives the sheet and the iPad's commands, and a host test checks it against
+"Keys at a glance", so the three never drift. Each key fires once: the iPad's bare keys are handled either as a
+command or by the focused screen, never both. On iPadOS 15 and later, text fields see a key before the app's
+commands do, which is why typing a note never reaches the transport.

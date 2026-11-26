@@ -15,7 +15,7 @@ enum Launch {
         return i + 1 < args.count ? Double(args[i + 1]) ?? 6 : 6
     }
 
-    /// `--screenshots DIR`: save the window live and with a replay open into DIR, muted, then quit.
+    /// `--screenshots DIR`: save the window live and with a replay open, and the key sheet, into DIR, muted, then quit.
     static var screenshotDir: URL? {
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "--screenshots"), i + 1 < args.count else { return nil }
@@ -38,7 +38,7 @@ enum SelfTest {
             Log.selftest.info(
                 "mic \(model.mic?.name ?? "none", privacy: .public); mics \(model.mics.count, privacy: .public); error \(model.micError ?? "none", privacy: .public)"
             )
-            model.replay(seconds: 5)
+            _ = model.press(.character("r"), shift: false)  // story 003: R is the last 5 s
             await wait(2)
             Log.selftest.info(
                 "replay open \(model.replayOpen, privacy: .public) length \(model.seconds(model.replayLength), format: .fixed(precision: 2), privacy: .public)s position \(model.seconds(model.position), format: .fixed(precision: 2), privacy: .public)s playing \(model.playing, privacy: .public) busy \(model.processingBusy, privacy: .public)"
@@ -66,6 +66,20 @@ enum SelfTest {
             )
             model.jump(seconds: 1)
             model.closeReplay()
+            // Story 016: ? opens the key sheet, keys behind it do nothing, Esc closes it; Y is the last 20 s.
+            _ = model.press(.character("?"), shift: true)
+            let up = model.showKeys
+            _ = model.press(.character("y"), shift: false)
+            let blocked = !model.replayOpen
+            _ = model.press(.escape, shift: false)
+            Log.selftest.info(
+                "key sheet: up \(up, privacy: .public), Y blocked \(blocked, privacy: .public), closed by Esc \(!model.showKeys, privacy: .public)"
+            )
+            _ = model.press(.character("y"), shift: false)
+            await wait(0.5)
+            Log.selftest.info(
+                "Y: replay \(model.seconds(model.replayLength), format: .fixed(precision: 2), privacy: .public)s")
+            model.cancel()
             model.bugNote = "selftest report"
             model.saveBug()
             await wait(1.5)

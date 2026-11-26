@@ -21,17 +21,20 @@ Mike Cohn use case plus Gherkin acceptance criteria. Each story: **Summary**, **
 
 ## Keys at a glance
 
+? shows this table in the app (story 016). On an iPad with a keyboard, holding ⌘ lists the same keys.
+
 | Key | Action |
 |---|---|
 | 1–9 | Switch to that mic |
 | Space | Play / pause the replay; with none open, replay the last 20 s |
-| R / T / F | Replay the last 20 / 10 / 5 s |
+| R / T / Y | Replay the last 5 / 10 / 20 s |
 | A | Replay from the start |
 | ← / → (⇧ for 5 s) | Jump back / forward 1 s |
 | N / B | Noise reduction / voice boost on and off |
 | C | Reset held peaks, clip count and the noise readout |
 | S | Save the last 20 s as a WAV with its measurements |
 | H | Open the noise explainer (what floor, speech and separation mean) |
-| Esc | Close the replay |
+| ? | Show every key |
+| Esc or ⌘. | Close the key sheet, else the replay |
 | ⌘I | Report a bug |
 | ⇧⌘N | What's new |

@@ -44,6 +44,10 @@ struct DebuggerCommands: Commands {
         CommandGroup(replacing: .help) {
             Button("Report a Bug…") { model.showBugReport = true }.keyboardShortcut("i")
             Button("What's New") { model.showWhatsNew = true }.keyboardShortcut("n", modifiers: [.command, .shift])
+            Button("Keys (?)") { model.showKeys = true }  // story 016; the bare ? is the key monitor's
+        }
+        CommandMenu("Replay") {
+            Button("Close Replay") { model.cancel() }.keyboardShortcut(".", modifiers: .command)
         }
     }
 }
@@ -67,7 +71,10 @@ enum Keys {
             let mods = event.modifierFlags.intersection([.command, .control, .option])
             guard mods.isEmpty else { return event }
             // Typing a bug note (or in any sheet or text field) must reach the text, not the transport.
-            if model.showBugReport || model.showWhatsNew || NSApp.keyWindow?.firstResponder is NSText {
+            // The key sheet's own Done takes Esc.
+            if model.showBugReport || model.showWhatsNew || model.showKeys
+                || NSApp.keyWindow?.firstResponder is NSText
+            {
                 return event
             }
             return handle(event, model) ? nil : event
