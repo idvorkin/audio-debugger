@@ -132,7 +132,9 @@ first, then every speaker and headphone), the choice is remembered, and a line u
 unplugged choice falls back to the system default and comes back when it is plugged in again.
 **Status**: Built in a57caac (ad-0er; host tests for the choice, fallback and stepping). Selftest: a muted replay on
 the built-in speakers, O, and the remembered choice restored. Two real outputs, headphones by ear, and unplugging
-the choice: to verify by Igor (run); this Mac had only its speakers.
+the choice: to verify by Igor (run); this Mac had only its speakers. iOS output row (ad-8ev): built in 71a28c0,
+`just ios-build` passes; the simulator selftest not run (other sessions' simulators were booted); on the phone: to
+verify by Igor.
 **Why**: "audio debugger also lets select speakers independent of mic" (Igor, 2026-11-26): test the USB mic while
 listening on the Mac's speakers, or the built-in mic on headphones, without changing the Mac's own output.
 
@@ -168,5 +170,4 @@ without changing the Mac's sound settings.
 shows it and offers the system's own route picker (`AVRoutePickerView`): AirPods, AirPlay, a wired headset, the
 speaker. There is no per-app device as on the Mac, so O does nothing there. With nothing plugged in, replay plays on
 the speaker (`.defaultToSpeaker`); the earpiece is not offered, as switching to it would mean changing the session's
-category under a running capture. iOS: built in 01132b3, `just ios-build` passes; the simulator selftest could not
-run (other sessions' simulators were booted); on the phone: to verify by Igor.
+category under a running capture.
