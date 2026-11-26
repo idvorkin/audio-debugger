@@ -19,6 +19,8 @@ final class Capture: @unchecked Sendable {
         /// False once stopped, so a buffer still in flight on the capture queue is dropped.
         var running = true
         var rate: Double = 48_000
+        /// When the newest buffer came in (`systemUptime`, seconds): a capture set lines its streams up by it.
+        var newest: TimeInterval = 0
     }
 
     private let queue = DispatchQueue(label: "mic-open", qos: .userInitiated)
@@ -86,12 +88,19 @@ final class Capture: @unchecked Sendable {
     /// On the source's own thread.
     private func ingest(_ samples: UnsafeBufferPointer<Float>) {
         let clipped = samples.reduce(0) { $0 + (abs($1) >= 0.999 ? 1 : 0) }
+        let now = ProcessInfo.processInfo.systemUptime
         buffers.withLock {
             guard $0.running else { return }
             $0.ring.write(samples)
             $0.scope.write(samples)
             $0.clips += clipped
+            $0.newest = now
         }
+    }
+
+    /// Stories 017/018: the newest `seconds` (up to the ring's 20 s), their rate, and when the newest buffer came in.
+    func take(seconds: Double) -> (samples: [Float], rate: Double, end: TimeInterval) {
+        buffers.withLock { ($0.ring.last(Int(seconds * $0.rate)), $0.rate, $0.newest) }
     }
 
     /// The newest scope window (zero-padded while young), the clip count and how much has been captured.

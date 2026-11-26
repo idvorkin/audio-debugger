@@ -25,6 +25,10 @@ A native macOS app for finding out how a microphone actually sounds: see the sig
   (download the file to read it offline; the Mac app bundles it).
 - **Save sample (S)**: the last 20 s as a WAV, raw, with a JSON sidecar of its measured floor, speech level,
   separation, peak and clipped samples, under `~/Library/Application Support/AudioDebugger/samples/`.
+- **Capture every mic (M, Mac)**: 10 s from every mic at once (Bluetooth and iPhone mics are left alone, so AirPods
+  keep their music quality) into one capture set under `captures/`: a raw WAV and a sidecar with a 0–100 score per
+  mic, and `manifest.json` that lines the streams up. **⇧M** takes each mic in turn, all of them, 6 s each, with a
+  phrase to say. Esc stops.
 
 ## Hearing it back
 

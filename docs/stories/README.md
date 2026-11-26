@@ -34,6 +34,7 @@ Mike Cohn use case plus Gherkin acceptance criteria. Each story: **Summary**, **
 | N / B | Noise reduction / voice boost on and off |
 | C | Reset held peaks, clip count and the noise readout |
 | S | Save the last 20 s as a WAV with its measurements |
+| M / ⇧M | Mac: capture every mic to one set, at once / in turn (Esc stops) |
 | H | Open the noise explainer (what floor, speech and separation mean) |
 | ? | Show every key |
 | Esc or ⌘. | Close the key sheet, else the replay |

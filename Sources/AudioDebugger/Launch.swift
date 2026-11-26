@@ -1,3 +1,4 @@
+import AudioCore
 import Foundation
 
 enum Launch {
@@ -106,8 +107,45 @@ enum SelfTest {
             Log.selftest.info(
                 "sample \(model.sampleSaved ?? "none", privacy: .public): \(sampleFiles.sorted().joined(separator: " "), privacy: .public)"
             )
+            #if os(macOS)
+            await captureSets(model)
+            #endif
             Log.selftest.info("selftest done")
             quitApp()
         }
     }
+
+    #if os(macOS)
+    /// Stories 017/018: a 2 s capture set at once, then in turn, of the `--mic` mics only, so a selftest never opens
+    /// AirPods or wakes an iPhone; without `--mic` it is skipped. Checks each manifest and its files.
+    private static func captureSets(_ model: AppModel) async {
+        guard let filter = Launch.micName else {
+            Log.selftest.info("capture set: skipped (no --mic filter)")
+            return
+        }
+        for mode in [CaptureSet.Mode.together, .inTurn] {
+            model.captureSaved = nil
+            model.captureSet(mode, seconds: 2, matching: filter)
+            var waited = 0
+            while model.captureRun != nil && waited < 60 {
+                try? await Task.sleep(for: .seconds(0.5))
+                waited += 1
+            }
+            guard let name = model.captureSaved else {
+                Log.selftest.error("capture set \(mode.rawValue, privacy: .public): not saved")
+                continue
+            }
+            let folder = SessionLog.root.appendingPathComponent("captures/\(name)")
+            let files = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+            let manifest = (try? Data(contentsOf: folder.appendingPathComponent("manifest.json")))
+                .flatMap { try? CaptureSet.decode($0) }
+            let streams = manifest?.streams.map { s in
+                "\(s.name) \(s.rate.map { "\(Int($0)) Hz" } ?? "failed") offset \(s.offset ?? 0) open \(s.openMs ?? 0) ms"
+            }
+            Log.selftest.info(
+                "capture set \(mode.rawValue, privacy: .public) captures/\(name, privacy: .public): \(files.sorted().joined(separator: " "), privacy: .public); streams \(streams?.joined(separator: "; ") ?? "no manifest", privacy: .public)"
+            )
+        }
+    }
+    #endif
 }

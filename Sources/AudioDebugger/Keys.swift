@@ -38,6 +38,11 @@ extension AppModel {
             if key == .escape { showKeys = false }
             return true
         }
+        // Stories 017/018: Esc stops a capture set being taken.
+        if captureRun != nil && key == .escape {
+            stopCaptureSet()
+            return true
+        }
         switch key {
         case .space: togglePlay()  // play/pause, or open the last 20 s
         case .escape: closeReplay()
@@ -65,6 +70,9 @@ extension AppModel {
             case "c": resetReadings()
             case "s": saveSample()
             case "h": openNoiseGuide()
+            #if os(macOS)
+            case "m": captureSet(shift ? .inTurn : .together)  // stories 017/018
+            #endif
             default: return false
             }
         }

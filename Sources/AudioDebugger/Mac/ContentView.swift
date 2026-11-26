@@ -19,6 +19,9 @@ struct ContentView: View {
                 Button("Reset peaks  C") { model.resetReadings() }
                 Button("Report a bug  ⌘I") { model.showBugReport = true }
                 Button("Keys  ?") { model.showKeys = true }
+                Button("Capture every mic  M") { model.captureSet(.together) }
+                    .help("Record every mic (not Bluetooth or iPhone) for 10 s into one capture set; ⇧M: each in turn")
+                    .disabled(model.captureRun != nil)
                 if let saved = model.bugSaved {
                     Text("Saved report \(saved)").foregroundStyle(green).font(.callout)
                 }
@@ -27,6 +30,18 @@ struct ContentView: View {
                     .frame(maxWidth: 420)
             }
             StatusLine()
+            if let run = model.captureRun {
+                // Stories 017/018: what the capture set is doing; in turn, the phrase to say, large.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Capture set: \(run.status)   Esc stops").foregroundStyle(amber).font(.callout.bold())
+                    if let phrase = run.phrase {
+                        Text("Say: “\(phrase)”").font(.title2.bold()).textSelection(.enabled)
+                    }
+                }
+            } else if let saved = model.captureSaved {
+                Text("Saved capture set captures/\(saved)").foregroundStyle(green).font(.callout)
+                    .textSelection(.enabled)
+            }
             if let error = model.micError {
                 Text(error).foregroundStyle(red).font(.callout)
             }
