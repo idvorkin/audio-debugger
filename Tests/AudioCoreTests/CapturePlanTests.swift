@@ -43,3 +43,9 @@ private let all = [airpods, macbook, iphone, usbMic]
     #expect(p.seconds == 2)
     #expect(CapturePlan(mics: all, remembered: nil, mode: .inTurn).seconds == 6)
 }
+
+@Test func rememberedSecondsStartTheSliderWithinRange() {
+    #expect(CapturePlan(mics: all, remembered: nil, mode: .together, seconds: 13).seconds == 13)
+    #expect(CapturePlan(mics: all, remembered: nil, mode: .inTurn, seconds: 40).seconds == 15)
+    #expect(CapturePlan(mics: all, remembered: nil, mode: .inTurn, seconds: 0).seconds == 2)
+}

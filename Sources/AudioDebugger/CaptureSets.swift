@@ -31,10 +31,12 @@ extension AppModel {
         openCapturePicker(mode)
     }
 
-    /// The picker alone (story 021): nothing opens until Return.
+    /// The picker alone (story 021): nothing opens until Return. It starts on the mics and, per mode, the seconds
+    /// chosen last time.
     func openCapturePicker(_ mode: CaptureSet.Mode) {
         let remembered = (UserDefaults.standard.array(forKey: Self.captureMicsKey) as? [String]).map(Set.init)
-        capturePlan = CapturePlan(mics: mics, remembered: remembered, mode: mode)
+        let seconds = UserDefaults.standard.object(forKey: Self.captureSecondsKey(mode)) as? Double
+        capturePlan = CapturePlan(mics: mics, remembered: remembered, mode: mode, seconds: seconds)
         SessionLog.shared.event("capture_picker", ["mode": mode.rawValue])
     }
 
@@ -43,11 +45,13 @@ extension AppModel {
         guard let plan = capturePlan else { return }
         guard !plan.selected.isEmpty else { return }
         UserDefaults.standard.set(Array(plan.chosen), forKey: Self.captureMicsKey)
+        UserDefaults.standard.set(plan.seconds, forKey: Self.captureSecondsKey(plan.mode))
         capturePlan = nil
         startCapture(plan.mode, plan.selected, seconds: plan.seconds)
     }
 
     static let captureMicsKey = "captureMics"
+    static func captureSecondsKey(_ mode: CaptureSet.Mode) -> String { "captureSeconds.\(mode.rawValue)" }
 
     private func startCapture(_ mode: CaptureSet.Mode, _ chosen: [Mic], seconds secs: Double) {
         guard captureRun == nil else { return }

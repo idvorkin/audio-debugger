@@ -45,7 +45,7 @@ extension AppModel {
             return true
         }
         #if os(macOS)
-        // Stories 017/018: the capture picker takes the keys while it is up: 1–9 switch a mic, T at once / in turn,
+        // Story 021: the capture picker takes the keys while it is up: 1–9 switch a mic, T at once / in turn,
         // ← / → seconds, Return starts, Esc cancels. ? still shows the keys; anything else does nothing.
         if capturePlan != nil {
             switch key {

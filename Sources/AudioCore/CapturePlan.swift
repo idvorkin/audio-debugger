@@ -1,6 +1,7 @@
-/// Story 017/018: what M is about to capture, chosen in the capture picker: which mics (a switch each), at once or in
+/// Story 021: what M is about to capture, chosen in the capture picker: which mics (a switch each), at once or in
 /// turn, and for how long. USB and built-in mics start on; Bluetooth and Continuity mics start off, each with the
-/// reason (`risk`), since opening one changes something outside the app. The last choice is remembered.
+/// reason (`risk`), since opening one changes something outside the app. The mics and
+/// the seconds (per mode) chosen last time are remembered by the app and passed in.
 public struct CapturePlan: Equatable, Sendable {
     public static let secondsRange: ClosedRange<Double> = 2...15  // under the 20 s capture ring
 
@@ -10,7 +11,8 @@ public struct CapturePlan: Equatable, Sendable {
     public private(set) var seconds: Double
 
     /// `remembered`: the mics (UIDs) chosen last time; those still plugged in start on. None of them present (or no
-    /// memory): every mic that opens without side effects.
+    /// memory): every mic that opens without side effects. `seconds`: the seconds chosen last time in this mode, else
+    /// the mode's default; clamped to `secondsRange`.
     public init(mics: [Mic], remembered: Set<String>?, mode: CaptureSet.Mode, seconds: Double? = nil) {
         self.mics = mics
         self.mode = mode

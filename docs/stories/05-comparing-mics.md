@@ -5,7 +5,7 @@ Mac only. Design: [docs/specs/2026-11-26-compare-mics.md](../specs/2026-11-26-co
 ## 017 — Capture every mic at once
 
 **Summary**: M records the mics chosen in its picker (story 021; Bluetooth and iPhone mics start off) at the same
-time for 10 s, into one capture set: a folder with each mic's raw WAV, its measurements, and a manifest that lines the
+time for the picker's seconds (10 s to start), into one capture set: a folder with each mic's raw WAV, its measurements, and a manifest that lines the
 streams up.
 **Status**: Built in e845c84 (ad-ppq; host tests for the manifest, offsets, mic filter and score; a failed or
 silent mic left out of the offsets in 70bdc6b, host test). Selftest: a 2 s set of the built-in mic alone. Several mics at once, and AirPods left alone: to verify by Igor (run).
@@ -37,7 +37,7 @@ the same sound later.
 ## 018 — Capture every mic in turn
 
 **Summary**: ⇧M (or T in the picker) records the chosen mics in turn, Bluetooth and iPhone mics included when switched
-on, for 6 s each, with the same phrase to say on screen, into the same kind of capture set.
+on, for the picker's seconds each (6 s to start), with the same phrase to say on screen, into the same kind of capture set.
 **Status**: Built in e845c84 (ad-ppq). Selftest: a 2 s turn of the built-in mic. Bluetooth and iPhone turns, and
 Esc mid-run: to verify by Igor (run).
 **Why**: "1 after other is interesting idea on osx" (Igor, 2026-11-26): for mics that can't run together, and to
@@ -89,7 +89,7 @@ is worst.
 
 **Summary**: M (and ⇧M) opens a picker in the main window: a switch per mic, at once or in turn, and a seconds
 slider. USB and built-in mics start on; Bluetooth and iPhone mics start off, each saying what opening it would do. The
-choice is remembered. Keys: 1–9 switch a mic, T at once / in turn, ← / → seconds, Return starts, Esc cancels.
+mics chosen are remembered, and the seconds for each mode. Keys: 1–9 switch a mic, T at once / in turn, ← / → seconds, Return starts, Esc cancels.
 **Status**: Built in e0735e6 (host tests: safe mics on, risky off, remembered, digits, mode, seconds). Selftest: the
 picker opens with only the built-in mic on and both iPhones off; 1, T, → give the expected plan; Esc closes it with
 no mic opened. `docs/picker.png`. Including AirPods and Return: to verify by Igor (run).
@@ -113,6 +113,10 @@ when I mean to, and never by accident.
   - Given I took a set with the AirPods on
   - When I press M again
   - Then the AirPods' switch starts on
+- Scenario: Seconds remembered per mode
+  - Given I took an at-once set at 15 s
+  - When I press M again
+  - Then the slider starts at 15 s, and ⇧M's still starts at its own last choice (6 s at first)
 - Scenario: Cancel
   - Given the picker is up
   - When I press Esc
