@@ -34,7 +34,7 @@ public struct CaptureSet: Codable, Equatable, Sendable {
         public var file: String?
         /// Seconds after the earliest stream's start (together); 0 in turn.
         public var offset: Double?
-        /// Host time of the stream's first sample, in seconds.
+        /// When the stream's first sample arrived, in seconds since boot (`systemUptime`).
         public var started: Double?
         public var openMs: Int?
         /// Why the mic gave no stream, in words.

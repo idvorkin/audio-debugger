@@ -82,6 +82,10 @@ final class AppModel {
     var showAbout = false
     /// The folder of the sample just saved (Sample.swift), shown for a few seconds.
     var sampleSaved: String?
+    /// Stories 017/018 (Mac): the capture set being taken, what it is doing, and the folder of the last one saved.
+    var captureRun: CaptureRun?
+    var captureSaved: String?
+    var captureTask: Task<Void, Never>?
 
     let capture = Capture()
     let player = Player()

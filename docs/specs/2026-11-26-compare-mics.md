@@ -38,7 +38,8 @@ ring, close them all. The live mic carries on throughout.
 show "Say: …" with a countdown, record `seconds` (default 6), close it, next. The live mic carries on, as in all at
 once. A failed open never stops the run.
 
-**Alignment.** Each `Capture` notes the host time (`mach_absolute_time`, as seconds) of the newest buffer it took in.
+**Alignment.** Each `Capture` notes when the newest buffer it took in arrived (`ProcessInfo.systemUptime`, seconds
+since boot, one clock for every stream).
 A stream's start is that time minus its length. In a set taken at once, each stream's `offset` is its start minus the
 earliest start, so the viewer lines the streams up to within one buffer (about 10–20 ms): good for seeing and
 hearing the difference, not for phase. In turn, offsets are 0 and each stream keeps its own `started` time.

@@ -49,6 +49,8 @@ public enum KeyTable {
         KeyEntry(
             "C", "Reset held peaks, clip count and the noise readout", [.init("c", "Reset Peaks and Noise Readout")]),
         KeyEntry("S", "Save the last 20 s as a WAV with its measurements", [.init("s", "Save Sample")]),
+        // Mac only (stories 017/018), so no iPad command.
+        KeyEntry("M / ⇧M", "Mac: capture every mic to one set, at once / in turn (Esc stops)"),
         KeyEntry(
             "H", "Open the noise explainer (what floor, speech and separation mean)", [.init("h", "Noise Explainer")]),
         KeyEntry("?", "Show every key", [.init("?", "Show Every Key")]),
