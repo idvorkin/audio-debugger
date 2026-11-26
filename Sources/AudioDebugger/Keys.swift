@@ -81,9 +81,15 @@ extension AppModel {
         return true
     }
 
-    /// ⌘. (the iPad's Folio has no Esc): the key sheet first, else the replay.
+    /// ⌘. (the iPad's Folio has no Esc): the key sheet first, then a capture set being taken, else the replay.
     func cancel() {
-        if showKeys { showKeys = false } else { closeReplay() }
+        if showKeys {
+            showKeys = false
+        } else if captureRun != nil {
+            stopCaptureSet()
+        } else {
+            closeReplay()
+        }
     }
 }
 

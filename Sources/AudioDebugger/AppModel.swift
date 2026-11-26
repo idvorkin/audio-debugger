@@ -153,7 +153,8 @@ final class AppModel {
     /// The device list changed (or first load). The decisions are `MicController`'s; this carries them out.
     private func micsChanged() {
         let list = Mics.all()
-        Log.mic.info("mics: \(list.map(\.name).joined(separator: ", "), privacy: .public)")
+        Log.mic.info(
+            "mics: \(list.map { "\($0.name) (\($0.kind.rawValue))" }.joined(separator: ", "), privacy: .public)")
         SessionLog.shared.event("mics", ["names": list.map(\.name)])
         perform(
             micControl.devicesChanged(

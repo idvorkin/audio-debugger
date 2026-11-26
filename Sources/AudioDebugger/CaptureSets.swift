@@ -15,9 +15,15 @@ struct CaptureRun: Equatable {
 /// sample sidecar (with the mic's score) per mic, and `manifest.json` (AudioCore's `CaptureSet`). Each mic gets its
 /// own `Capture`; the live mic carries on. Spec: docs/specs/2026-11-26-compare-mics.md.
 extension AppModel {
-    /// `filter`: keep only mics whose name contains it (scripted runs, so they never open AirPods or wake a phone).
-    func captureSet(_ mode: CaptureSet.Mode, seconds: Double? = nil, matching filter: String? = nil) {
+    /// M / ⇧M. A scripted run (selftest) keeps only the `--mic` mics and takes 2 s each, and refuses without `--mic`,
+    /// so a script never opens AirPods or wakes a phone.
+    func captureSet(_ mode: CaptureSet.Mode) {
         guard captureRun == nil else { return }
+        let filter = Launch.scripted ? Launch.micName : nil
+        if Launch.scripted && filter == nil {
+            Log.app.error("capture set refused: a scripted run needs --mic to choose its mics")
+            return
+        }
         let chosen = mode.mics(from: mics, matching: filter)
         guard !chosen.isEmpty else {
             Log.app.info("capture set: no mics to capture (\(mode.rawValue, privacy: .public))")
@@ -25,7 +31,7 @@ extension AppModel {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { MainActor.assumeIsolated { self.captureRun = nil } }
             return
         }
-        let secs = seconds ?? (mode == .together ? 10 : 6)
+        let secs: Double = Launch.scripted ? 2 : (mode == .together ? 10 : 6)
         SessionLog.shared.event(
             "capture_set_start", ["mode": mode.rawValue, "mics": chosen.map(\.name), "seconds": secs])
         // Set now, not in the task: a second M, or a caller waiting on the run, sees it at once.
