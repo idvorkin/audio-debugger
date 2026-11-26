@@ -127,7 +127,8 @@ its marks were wrong. Each change is logged as `input_format` with the line's te
 **Summary**: ? opens a key sheet listing every key and what it does, the same table as "Keys at a glance". On an
 iPad or iPhone with a keyboard the keys are the app's keyboard commands, so holding ⌘ lists them, and ⌘. closes
 the replay (the iPad's Folio keyboard has no Esc).
-**Status**: Planned (ad-49f)
+**Status**: Built in bcaa22a (ad-49f). Verified on `just selftest` (Mac: R, the sheet blocks Y, Esc closes it, Y
+replays) and `just ios-build`; the iPad keyboard check is still to do.
 **Why**: "Should probably show me keyboard shortcuts" (Igor, 2026-11-26).
 
 **Use Case**: As Igor, I want to see every key without opening the repo, so that I can use the app from the

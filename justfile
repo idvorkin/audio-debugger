@@ -89,11 +89,16 @@ screenshots mic="MacBook": app _quit-app
     dir="$HOME/tmp/agent/audio-debugger/screens"
     rm -rf "$dir"; mkdir -p "$dir"
     open -g "{{app}}" --args --screenshots "$dir" --mic "{{mic}}"
-    for shot in live replay keys; do
+    for shot in live replay; do
       for _ in $(seq 60); do [ -f "$dir/$shot.wid" ] && break; sleep 0.5; done
       [ -f "$dir/$shot.wid" ] || { echo "no $shot shot"; exit 1; }
-      screencapture -o -x -l "$(cat "$dir/$shot.wid")" "docs/$shot.png" && echo "docs/$shot.png"
+      screencapture -o -x -l "$(cat "$dir/$shot.wid")" "docs/$shot.png" || exit 1
+      echo "docs/$shot.png"
     done
+    # The key sheet is drawn by the app itself: screencapture can't grab a background app's sheet window.
+    for _ in $(seq 20); do [ -f "$dir/keys.png" ] && break; sleep 0.5; done
+    [ -f "$dir/keys.png" ] || { echo "no keys shot"; exit 1; }
+    cp "$dir/keys.png" docs/keys.png && echo docs/keys.png
 
 # Redraw the app icon (scripts/make-icon.swift) into the iOS asset catalog and the Mac's Support/AppIcon.icns.
 icon:

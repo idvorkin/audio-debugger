@@ -83,6 +83,21 @@ struct KeySheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            KeyList()
+            HStack {
+                Spacer()
+                Button("Done") { model.showKeys = false }.keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(20)
+        .frame(minWidth: 460)
+    }
+}
+
+/// The key sheet's title and table: plain text, so `just screenshots` can draw it with `ImageRenderer`.
+struct KeyList: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Keys").font(.title3.bold())
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
                 ForEach(KeyTable.all, id: \.keys) { entry in
@@ -92,13 +107,7 @@ struct KeySheet: View {
                     }
                 }
             }
-            HStack {
-                Spacer()
-                Button("Done") { model.showKeys = false }.keyboardShortcut(.cancelAction)
-            }
         }
-        .padding(20)
-        .frame(minWidth: 460)
     }
 }
 

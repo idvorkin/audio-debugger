@@ -33,6 +33,8 @@ A native macOS app for finding out how a microphone actually sounds: see the sig
 The last 20 seconds are always kept. **R / T / Y** replay the last 5 / 10 / 20 s (Space with nothing open
 replays 20 s). **?** lists every key; on an iPad, holding ⌘ does too, and ⌘. closes the replay.
 
+![Key sheet (?): every key and what it does](docs/keys.png)
+
 - **Space** pauses and resumes, **A** starts over, **← / →** jump a second (⇧ for five); click or drag the
   waveform, or use the scrubber.
 - **Noise reduction (N)**: spectral gating, with the noise profile learned from the quietest moments of the clip.
