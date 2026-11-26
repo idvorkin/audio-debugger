@@ -20,6 +20,9 @@ The live view does not change.
 | All at once (default) | M | every input except Bluetooth and Continuity (iPhone) | Opening AirPods drops them into call mode, music and all; opening an iPhone mic wakes the phone. Neither should happen by accident |
 | In turn | ⇧M | every input, Bluetooth and Continuity included | One mic open at a time, the same phrase each time: for mics that can't run together, and for A/B listening |
 
+Since story 021 these are only the picker's starting switches (and a scripted run's mics): M and ⇧M open a picker
+where any mic, Bluetooth and Continuity included, can be switched on, the mode flipped and the seconds set.
+
 `Mic.Kind` gains `.continuity` (Core Audio transport `ccwd`/`ccwl`, `kAudioDeviceTransportTypeContinuityCapture*`);
 today those land in `.other`. `Mic.choose` keeps them after the built-in mic, as now.
 

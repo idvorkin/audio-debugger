@@ -1,7 +1,7 @@
 import AudioCore
 import SwiftUI
 
-/// Stories 017/018: M's picker, in the main window in place of the panels. A switch per mic (Bluetooth and iPhone
+/// Story 021: M's picker, in the main window in place of the panels. A switch per mic (Bluetooth and iPhone
 /// mics start off, with what opening them would do), at once or in turn, and the length. Keyboard first: 1–9, T,
 /// ← / →, Return, Esc.
 struct CapturePicker: View {
