@@ -15,7 +15,7 @@ enum Launch {
         return i + 1 < args.count ? Double(args[i + 1]) ?? 6 : 6
     }
 
-    /// `--screenshots DIR`: save the window live and with a replay open into DIR, muted, then quit.
+    /// `--screenshots DIR`: save the window live and with a replay open, and the key sheet, into DIR, muted, then quit.
     static var screenshotDir: URL? {
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "--screenshots"), i + 1 < args.count else { return nil }
