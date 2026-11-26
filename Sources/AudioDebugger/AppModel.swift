@@ -94,6 +94,8 @@ final class AppModel {
     /// Story 019 (Mac): the capture set open for comparison, its folder name, the row playing and the one before.
     var comparison: Comparison?
     var comparisonName: String?
+    /// Where the open set was loaded from (⌘O can open one outside `captures/`), for Reveal.
+    var comparisonFolder: URL?
     var playingRow: Int?
     var previousRow: Int?
     var comparisonError: String?

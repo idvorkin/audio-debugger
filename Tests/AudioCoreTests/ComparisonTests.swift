@@ -37,6 +37,13 @@ private func talk(_ loud: Float, quiet: Float, rate: Float, seconds: Int) -> [Fl
     #expect(throws: WAV.Problem.notWAV) { try WAV.decode(Data("hello world!".utf8)) }
 }
 
+@Test func wavTruncatedAnywhereThrowsNeverTraps() {
+    let whole = WAV.encode([0.1, 0.2, 0.3], rate: 48000)
+    for cut in 0..<(whole.count - 12) {
+        _ = try? WAV.decode(whole.prefix(cut))  // must return or throw for every prefix
+    }
+}
+
 /// Three mics and a failure, written to a temp folder as the app writes a set: the loader must rank them by score
 /// from the WAVs alone, keep the failure last, and carry each stream's offset.
 @Test func comparisonLoadsRanksAndAligns() throws {

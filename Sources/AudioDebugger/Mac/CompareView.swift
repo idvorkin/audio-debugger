@@ -17,6 +17,7 @@ extension AppModel {
                     self.comparisonError = nil
                     self.comparison = c
                     self.comparisonName = name
+                    self.comparisonFolder = folder
                     self.playingRow = nil
                     self.previousRow = nil
                     let ranked = c.rows.map { r in "\(r.stream.name) \(r.reading.map { "\($0.score)" } ?? "—")" }
@@ -78,8 +79,7 @@ extension AppModel {
 
     /// ⌘R: the set's folder in Finder.
     func revealComparison() {
-        guard let name = comparisonName else { return }
-        let folder = SessionLog.root.appendingPathComponent("captures/\(name)", isDirectory: true)
+        guard let folder = comparisonFolder else { return }
         NSWorkspace.shared.activateFileViewerSelecting([folder])
     }
 }

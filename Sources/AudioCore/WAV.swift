@@ -29,13 +29,13 @@ public enum WAV {
         while i + 8 <= bytes.count {
             let id = tag(i), size = u32(i + 4), body = i + 8
             let end = min(bytes.count, body + size)
-            if id == "fmt " && size >= 16 {
+            if id == "fmt " && size >= 16 && body + 16 <= bytes.count {  // a truncated file throws, never traps
                 format = u16(body)
                 channels = max(1, u16(body + 2))
                 rate = u32(body + 4)
                 bits = u16(body + 14)
                 // WAVE_FORMAT_EXTENSIBLE: the real format is the subformat GUID's first two bytes.
-                if format == 0xFFFE && size >= 26 { format = u16(body + 24) }
+                if format == 0xFFFE && size >= 26 && body + 26 <= bytes.count { format = u16(body + 24) }
             } else if id == "data" {
                 dataRange = body..<end
             }

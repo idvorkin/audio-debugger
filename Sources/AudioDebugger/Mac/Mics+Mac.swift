@@ -25,6 +25,9 @@ enum Mics {
         devices().first { string($0, kAudioDevicePropertyDeviceUID) == uid }
     }
 
+    /// A device's name, for the log.
+    static func name(of id: AudioDeviceID) -> String? { string(id, kAudioObjectPropertyName) }
+
     private static func devices() -> [AudioDeviceID] {
         var addr = address(kAudioHardwarePropertyDevices)
         var size: UInt32 = 0

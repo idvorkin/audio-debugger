@@ -151,5 +151,19 @@ final class Player {
         try engine.start()
         self.engine = engine
         engineRate = sampleRate
+        #if os(macOS)
+        // Story 020: read back where the engine really plays, so the log shows a switch took (or didn't).
+        var playing = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        if let unit = engine.outputNode.audioUnit,
+            AudioUnitGetProperty(
+                unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &playing, &size)
+                == noErr
+        {
+            Log.replay.info(
+                "playback engine on \(Mics.name(of: playing) ?? "device \(playing)", privacy: .public) at \(sampleRate, privacy: .public) Hz"
+            )
+        }
+        #endif
     }
 }
