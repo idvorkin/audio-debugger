@@ -41,8 +41,10 @@ once. A failed open never stops the run.
 **Alignment.** Each `Capture` notes when the newest buffer it took in arrived (`ProcessInfo.systemUptime`, seconds
 since boot, one clock for every stream).
 A stream's start is that time minus its length. In a set taken at once, each stream's `offset` is its start minus the
-earliest start, so the viewer lines the streams up to within one buffer (about 10–20 ms): good for seeing and
-hearing the difference, not for phase. In turn, offsets are 0 and each stream keeps its own `started` time.
+earliest start. Arrival time includes each device's own latency, so this is an estimate, not yet measured: perhaps
+a buffer or two (tens of ms). Good for seeing and hearing the difference, not for phase. `offset` is the viewer's only
+alignment input, so a better estimate (cross-correlation, once Igor has a two-mic set) changes one number. In turn,
+offsets are 0 and each stream keeps its own `started` time.
 
 The phrase: "Six thick thistle sticks. A quick brown fox jumps over the lazy dog." Sibilants and plosives, to show
 the band and the clipping.

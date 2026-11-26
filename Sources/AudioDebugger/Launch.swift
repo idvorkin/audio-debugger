@@ -109,16 +109,17 @@ enum SelfTest {
     }
 
     #if os(macOS)
-    /// Stories 017/018: a 2 s capture set at once, then in turn, of the `--mic` mics only, so a selftest never opens
-    /// AirPods or wakes an iPhone; without `--mic` it is skipped. Checks each manifest and its files.
+    /// Stories 017/018: M, then ⇧M, through the keys: a 2 s capture set at once, then in turn, of the `--mic` mics
+    /// only, so a selftest never opens AirPods or wakes an iPhone (without `--mic` the app refuses). Checks each
+    /// manifest and its files.
     private static func captureSets(_ model: AppModel) async {
-        guard let filter = Launch.micName else {
+        guard Launch.micName != nil else {
             Log.selftest.info("capture set: skipped (no --mic filter)")
             return
         }
         for mode in [CaptureSet.Mode.together, .inTurn] {
             model.captureSaved = nil
-            model.captureSet(mode, seconds: 2, matching: filter)
+            _ = model.press(.character(mode == .together ? "m" : "M"), shift: mode == .inTurn)
             var waited = 0
             while model.captureRun != nil && waited < 60 {
                 try? await Task.sleep(for: .seconds(0.5))
