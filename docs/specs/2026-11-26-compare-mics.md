@@ -41,7 +41,7 @@ once. A failed open never stops the run.
 **Alignment.** Each `Capture` notes when the newest buffer it took in arrived (`ProcessInfo.systemUptime`, seconds
 since boot, one clock for every stream).
 A stream's start is that time minus its length. In a set taken at once, each stream's `offset` is its start minus the
-earliest start. Arrival time includes each device's own latency, so this is an estimate, not yet measured: perhaps
+earliest start among the streams that recorded audio; a failed or silent stream has no start and an offset of 0. Arrival time includes each device's own latency, so this is an estimate, not yet measured: perhaps
 a buffer or two (tens of ms). Good for seeing and hearing the difference, not for phase. `offset` is the viewer's only
 alignment input, so a better estimate (cross-correlation, once Igor has a two-mic set) changes one number. In turn,
 offsets are 0 and each stream keeps its own `started` time.

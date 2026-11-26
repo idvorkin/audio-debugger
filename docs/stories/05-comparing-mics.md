@@ -6,8 +6,8 @@ Mac only. Design: [docs/specs/2026-11-26-compare-mics.md](../specs/2026-11-26-co
 
 **Summary**: M records every mic, apart from Bluetooth and iPhone (Continuity) mics, at the same time for 10 s, into
 one capture set: a folder with each mic's raw WAV, its measurements, and a manifest that lines the streams up.
-**Status**: Built in e845c84 (ad-ppq; host tests for the manifest, offsets, mic filter and score). Selftest: a 2 s
-set of the built-in mic alone. Several mics at once, and AirPods left alone: to verify by Igor (run).
+**Status**: Built in e845c84 (ad-ppq; host tests for the manifest, offsets, mic filter and score; a failed or
+silent mic left out of the offsets in 70bdc6b, host test). Selftest: a 2 s set of the built-in mic alone. Several mics at once, and AirPods left alone: to verify by Igor (run).
 **Why**: "we will probably do the capture of all the streams. Then we can load them all and get some kind of view
 debugger to see the difference" (Igor, 2026-11-26).
 
