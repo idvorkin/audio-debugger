@@ -22,15 +22,8 @@ enum Launch {
         return URL(fileURLWithPath: args[i + 1], isDirectory: true)
     }
 
-    /// `--no-mic`: never ask for or open a mic, for a simulator screenshot while the Mac's input is AirPods (a
-    /// simulator's mic is the Mac's default input, and opening AirPods' drops them into call mode).
-    static var noMic: Bool { CommandLine.arguments.contains("--no-mic") }
-
-    /// `--keys`: open with the key sheet up (story 016), for a screenshot.
-    static var showKeys: Bool { CommandLine.arguments.contains("--keys") }
-
     /// A scripted run: its logs and reports go in their own folder, so the listener never files them.
-    static var scripted: Bool { selfTestSeconds != nil || screenshotDir != nil || noMic }
+    static var scripted: Bool { selfTestSeconds != nil || screenshotDir != nil }
 }
 
 /// `just selftest`: drive the replay flow muted and log what happened, then quit. Verified from the log.

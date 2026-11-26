@@ -27,7 +27,7 @@ Mike Cohn use case plus Gherkin acceptance criteria. Each story: **Summary**, **
 |---|---|
 | 1–9 | Switch to that mic |
 | Space | Play / pause the replay; with none open, replay the last 20 s |
-| R / T / Y | Replay the last 5 / 10 / 20 s (F also replays 5 s) |
+| R / T / Y | Replay the last 5 / 10 / 20 s |
 | A | Replay from the start |
 | ← / → (⇧ for 5 s) | Jump back / forward 1 s |
 | N / B | Noise reduction / voice boost on and off |

@@ -35,7 +35,7 @@ struct AudioDebuggerApp: App {
                 }
         }
         // The bare keys and ⌘. as keyboard commands: holding ⌘ on an iPad lists them (story 016).
-        .commands { KeyCommands(model: model) }
+        .commands { KeyCommands(model: model, reporter: reporter) }
         // Capture carries on in the background (UIBackgroundModes audio), so the last 20 s are there on return;
         // only the drawing stops.
         .onChange(of: scenePhase) { _, phase in

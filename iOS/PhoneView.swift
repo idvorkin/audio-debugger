@@ -7,7 +7,6 @@ struct PhoneView: View {
     @Environment(AppModel.self) private var model
     @EnvironmentObject private var reporter: BugReporter
     @Environment(\.horizontalSizeClass) private var sizeClass
-    @State private var showAbout = false
     @FocusState private var focused: Bool
 
     private var compact: Bool { sizeClass == .compact }
@@ -20,7 +19,7 @@ struct PhoneView: View {
                     Button("Report a problem", systemImage: "ladybug") { reporter.open(from: .button) }
                     Button("What's new", systemImage: "sparkles") { model.showWhatsNew = true }
                     Button("Keys", systemImage: "keyboard") { model.showKeys = true }
-                    Button("About", systemImage: "info.circle") { showAbout = true }
+                    Button("About", systemImage: "info.circle") { model.showAbout = true }
                 } label: {
                     Image(systemName: "ellipsis.circle").font(.title2)
                 }
@@ -59,10 +58,10 @@ struct PhoneView: View {
         .sheet(isPresented: Binding(get: { model.showKeys }, set: { model.showKeys = $0 })) {
             ScrollView { KeySheet().environment(model) }
         }
-        .sheet(isPresented: $showAbout) {
+        .sheet(isPresented: Binding(get: { model.showAbout }, set: { model.showAbout = $0 })) {
             NavigationStack {
                 Form { BugKitAboutLink() }
-                    .toolbar { Button("Done") { showAbout = false } }
+                    .toolbar { Button("Done") { model.showAbout = false } }
             }
         }
         // An iPad's hardware keyboard: the Mac's bare keys (Keys.swift). Sheets take focus, so a bug note's typing

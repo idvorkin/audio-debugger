@@ -16,7 +16,12 @@ import Testing
     #expect(rows == KeyTable.markdownRows)
 }
 
-@Test func replayKeysReadShortestFirst() {
+// Story 003 and the change's intent: R, T and Y replay 5, 10 and 20 s, and no other key replays.
+@Test func replayKeysPlayFiveTenTwentySeconds() {
+    #expect(KeyTable.replaySeconds == ["r": 5, "t": 10, "y": 20])
+}
+
+@Test func replayKeysAreCommands() {
     let replay = KeyTable.all.first { $0.keys == "R / T / Y" }
     #expect(replay?.commands.map(\.key) == ["r", "t", "y"])
 }

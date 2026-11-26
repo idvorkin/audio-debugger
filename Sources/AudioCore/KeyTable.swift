@@ -34,7 +34,7 @@ public enum KeyTable {
         KeyEntry(
             "Space", "Play / pause the replay; with none open, replay the last 20 s", [.init("space", "Play / Pause")]),
         KeyEntry(
-            "R / T / Y", "Replay the last 5 / 10 / 20 s (F also replays 5 s)",
+            "R / T / Y", "Replay the last 5 / 10 / 20 s",
             [.init("r", "Replay Last 5 s"), .init("t", "Replay Last 10 s"), .init("y", "Replay Last 20 s")]),
         KeyEntry("A", "Replay from the start", [.init("a", "Replay From the Start")]),
         KeyEntry(
@@ -56,6 +56,9 @@ public enum KeyTable {
         KeyEntry("⌘I", "Report a bug"),
         KeyEntry("⇧⌘N", "What's new"),
     ]
+
+    /// Story 003: how many seconds each replay key plays, shortest first along the keyboard.
+    public static let replaySeconds: [String: Int] = ["r": 5, "t": 10, "y": 20]
 
     /// The rows as the stories' markdown table rows: "| R / T / Y | Replay the last … |".
     public static var markdownRows: [String] { all.map { "| \($0.keys) | \($0.action) |" } }

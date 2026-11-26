@@ -1,4 +1,5 @@
 import AudioCore
+import BugKit
 import SwiftUI
 
 /// A bare key, as each platform names it: the Mac's `Keys` monitor and the iPad's hardware keyboard both land here.
@@ -55,10 +56,11 @@ extension AppModel {
                 select(index: n - 1)
                 return true
             }
+            if let seconds = KeyTable.replaySeconds[c] {
+                replay(seconds: seconds)
+                return true
+            }
             switch c {
-            case "r", "f": replay(seconds: 5)  // F: the old 5 s key, kept as an alias
-            case "t": replay(seconds: 10)
-            case "y": replay(seconds: 20)
             case "a": restart()
             case "n": processing.noiseReduction.toggle()
             case "b": processing.voiceBoost.toggle()
@@ -117,18 +119,27 @@ struct KeyList: View {
 /// these, so typing a bug note never reaches the transport. The Mac's bare keys are its key monitor's, not menus.
 struct KeyCommands: Commands {
     let model: AppModel
+    let reporter: BugReporter
+
+    /// As the Mac's key monitor: nothing reaches the transport behind What's new, About or a bug report. The key
+    /// sheet is `press`'s own.
+    private var behindSheet: Bool { model.showWhatsNew || model.showAbout || reporter.flow.isPresented }
 
     var body: some Commands {
         CommandMenu("Replay") {
             ForEach(KeyTable.all.flatMap(\.commands), id: \.title) { command in
                 Button(command.title) {
-                    guard !model.showWhatsNew else { return }
+                    guard !behindSheet else { return }
                     _ = model.press(BareKey(command: command.key), shift: command.shift)
                 }
                 .keyboardShortcut(BareKey(command: command.key).equivalent, modifiers: command.shift ? .shift : [])
             }
             Divider()
-            Button("Close Replay") { model.cancel() }.keyboardShortcut(".", modifiers: .command)
+            Button("Close Replay") {
+                guard !behindSheet else { return }
+                model.cancel()
+            }
+            .keyboardShortcut(".", modifiers: .command)
         }
     }
 

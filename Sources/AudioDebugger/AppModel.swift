@@ -78,6 +78,8 @@ final class AppModel {
     var showWhatsNew = false
     /// Story 016: the key sheet (?).
     var showKeys = false
+    /// The iPhone's and iPad's About sheet: the iPad's keyboard commands stay quiet behind it.
+    var showAbout = false
     /// The folder of the sample just saved (Sample.swift), shown for a few seconds.
     var sampleSaved: String?
 
@@ -115,18 +117,6 @@ final class AppModel {
     func start() {
         guard timer == nil else { return }
         capture.onFailure = { [weak self] in self?.captureFailed() }
-        showKeys = Launch.showKeys
-        if !Launch.noMic { listenForMics() }
-        // In the common modes: in the default mode alone, the readings and playhead freeze while a finger drags.
-        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.tick() }
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
-    }
-
-    /// The mic list, its changes and the permission; skipped by `--no-mic`.
-    private func listenForMics() {
         Mics.onChange { [weak self] in self?.micsChanged() }
         Mics.onRouteChange { [weak self] in self?.refreshInput() }
         AVCaptureDevice.requestAccess(for: .audio) { granted in
@@ -146,6 +136,12 @@ final class AppModel {
                 }
             }
         }
+        // In the common modes: in the default mode alone, the readings and playhead freeze while a finger drags.
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.tick() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     // MARK: Mics
