@@ -90,7 +90,9 @@ is worst.
 **Summary**: M (and ⇧M) opens a picker in the main window: a switch per mic, at once or in turn, and a seconds
 slider. USB and built-in mics start on; Bluetooth and iPhone mics start off, each saying what opening it would do. The
 choice is remembered. Keys: 1–9 switch a mic, T at once / in turn, ← / → seconds, Return starts, Esc cancels.
-**Status**: Planned (ad-ppq follow-up)
+**Status**: Built in e0735e6 (host tests: safe mics on, risky off, remembered, digits, mode, seconds). Selftest: the
+picker opens with only the built-in mic on and both iPhones off; 1, T, → give the expected plan; Esc closes it with
+no mic opened. `docs/picker.png`. Including AirPods and Return: to verify by Igor (run).
 **Why**: "why didn't m cover the other ones? … pop up something asking me, or an option with sliders to pick which
 ones to capture from maybe with switches" (Igor, 2026-11-26).
 

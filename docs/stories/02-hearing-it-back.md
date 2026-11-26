@@ -86,7 +86,9 @@ recording: floor -61.7, speech -16.2, separation 45.5 dB GOOD; the app layer cro
 2026-11-24, the selftest saved `sample.wav` (48 kHz mono float32) and `sample.json` with numbers in tenths. Later
 that day the selftest on AirPods (24 kHz) wrote `"seconds" : 17.940000000000001` for a clip under 20 s; seconds now
 print in hundredths (host test `sidecarNumbersPrintShort`, then the selftest on AirPods wrote `13.94`). S revealing
-the WAV in Finder owed to a run)
+the WAV in Finder owed to a run). Share and Reveal (ad-ejj) built in 0e16634: selftest logs Share handing over
+`sample.wav sample.json`, both on disk; `just ios-build`. The share sheet itself, on the Mac and the iPhone: to
+verify by Igor (run)
 **Why**: "So I could take my live samples and maybe save them": a room or a mic, kept to compare later.
 
 **Use Case**: As Igor, I want to keep the last 20 seconds with its numbers, so that I can compare mics and rooms
