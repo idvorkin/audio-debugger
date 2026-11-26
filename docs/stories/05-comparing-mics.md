@@ -6,7 +6,7 @@ Mac only. Design: [docs/specs/2026-11-26-compare-mics.md](../specs/2026-11-26-co
 
 **Summary**: M records every mic, apart from Bluetooth and iPhone (Continuity) mics, at the same time for 10 s, into
 one capture set: a folder with each mic's raw WAV, its measurements, and a manifest that lines the streams up.
-**Status**: Built in 4d679e0 (ad-ppq; host tests for the manifest, offsets, mic filter and score). Selftest: a 2 s
+**Status**: Built in e845c84 (ad-ppq; host tests for the manifest, offsets, mic filter and score). Selftest: a 2 s
 set of the built-in mic alone. Several mics at once, and AirPods left alone: to verify by Igor (run).
 **Why**: "we will probably do the capture of all the streams. Then we can load them all and get some kind of view
 debugger to see the difference" (Igor, 2026-11-26).
@@ -37,7 +37,7 @@ the same sound later.
 
 **Summary**: ⇧M records each mic in turn, every one including Bluetooth and iPhone mics, for 6 s each, with the same
 phrase to say on screen, into the same kind of capture set.
-**Status**: Built in 4d679e0 (ad-ppq). Selftest: a 2 s turn of the built-in mic. Bluetooth and iPhone turns, and
+**Status**: Built in e845c84 (ad-ppq). Selftest: a 2 s turn of the built-in mic. Bluetooth and iPhone turns, and
 Esc mid-run: to verify by Igor (run).
 **Why**: "1 after other is interesting idea on osx" (Igor, 2026-11-26): for mics that can't run together, and to
 compare the same words.
@@ -61,7 +61,7 @@ that can't record together.
 **Summary**: A viewer loads a capture set, just taken or earlier (⌘O), and ranks the mics best to worst with a
 0–100 score and the numbers behind it, aligned waveforms and spectra, and one key per mic to listen (as recorded)
 and A/B.
-**Status**: Built in 542531c (ad-ppq). Host test: a four-stream fixture set loads, ranks, aligns and maps A/B places.
+**Status**: Built in 9737f0c (ad-ppq). Host test: a four-stream fixture set loads, ranks, aligns and maps A/B places.
 Selftest: the one-mic set just taken opens, 1 plays it raw, Esc Esc closes. Three mics, ⇥ by ear and ⌘O: to verify
 by Igor (run).
 **Why**: "comparison views... pick the best and the worst" (Igor, 2026-11-26).
