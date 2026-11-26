@@ -10,6 +10,7 @@ mic, AirPods on his head (often playing music).
 | [Hearing it back](02-hearing-it-back.md) | The always-on replay, its transport, noise reduction and voice boost. |
 | [When something is wrong](03-reporting.md) | Reporting a bug with the audio that showed it, crashes, and what changed. |
 | [On the phone](04-on-the-phone.md) | The iPhone and iPad app: the same scope by touch, the mic choice, capture in the background. |
+| [Comparing mics](05-comparing-mics.md) | Mac: every mic captured to one set, at once or in turn, and a viewer that ranks them. |
 
 ## Format
 
