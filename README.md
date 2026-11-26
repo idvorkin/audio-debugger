@@ -49,6 +49,9 @@ replays 20 s). **?** lists every key; on an iPad, holding ⌘ does too, and ⌘.
 - **Noise reduction (N)**: spectral gating, with the noise profile learned from the quietest moments of the clip.
 - **Voice boost (B)**: voice band only (90 Hz–7.5 kHz), speech brought to -16 dBFS, peaks soft-limited.
 - Toggle either while it plays: it keeps your place, so you can A/B the difference.
+- **Output (O, Mac)**: replay plays on an output chosen apart from the mic (the system default, then each speaker or
+  headphone in turn), named on the line under the input and remembered. An unplugged choice falls back to the system
+  default until it is back. The Mac's own sound settings are never changed.
 
 On a hissy mic, the two together raise the voice above the hiss between words by more than 15 dB (a host test).
 

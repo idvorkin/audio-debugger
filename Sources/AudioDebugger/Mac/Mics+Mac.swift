@@ -6,19 +6,41 @@ import Foundation
 enum Mics {
     /// Every device with at least one input channel.
     static func all() -> [Mic] {
+        devices().compactMap { id in
+            guard channels(id, kAudioDevicePropertyScopeInput) > 0, let (uid, name) = named(id) else { return nil }
+            return Mic(uid: uid, name: name, kind: kind(transportType(id)))
+        }
+    }
+
+    /// Story 020: every device with at least one output channel, for replay.
+    static func outputs() -> [Output] {
+        devices().compactMap { id in
+            guard channels(id, kAudioDevicePropertyScopeOutput) > 0, let (uid, name) = named(id) else { return nil }
+            return Output(uid: uid, name: name)
+        }
+    }
+
+    /// The Core Audio device with `uid`, for pointing the replay engine at it.
+    static func deviceID(uid: String) -> AudioDeviceID? {
+        devices().first { string($0, kAudioDevicePropertyDeviceUID) == uid }
+    }
+
+    private static func devices() -> [AudioDeviceID] {
         var addr = address(kAudioHardwarePropertyDevices)
         var size: UInt32 = 0
         let system = AudioObjectID(kAudioObjectSystemObject)
         guard AudioObjectGetPropertyDataSize(system, &addr, 0, nil, &size) == noErr else { return [] }
         var ids = [AudioDeviceID](repeating: 0, count: Int(size) / MemoryLayout<AudioDeviceID>.size)
         guard AudioObjectGetPropertyData(system, &addr, 0, nil, &size, &ids) == noErr else { return [] }
-        return ids.compactMap { id in
-            guard inputChannels(id) > 0, let name = string(id, kAudioObjectPropertyName),
-                let uid = string(id, kAudioDevicePropertyDeviceUID),
-                !name.hasPrefix("CADefaultDeviceAggregate")  // the system's private aggregates, not a mic
-            else { return nil }
-            return Mic(uid: uid, name: name, kind: kind(transportType(id)))
-        }
+        return ids
+    }
+
+    /// The UID and name, leaving out the system's private aggregates (not a real mic or speaker).
+    private static func named(_ id: AudioDeviceID) -> (String, String)? {
+        guard let name = string(id, kAudioObjectPropertyName), let uid = string(id, kAudioDevicePropertyDeviceUID),
+            !name.hasPrefix("CADefaultDeviceAggregate")
+        else { return nil }
+        return (uid, name)
     }
 
     /// Calls `handler` on the main queue whenever a device is plugged in or removed.
@@ -55,8 +77,8 @@ enum Mics {
         AudioObjectPropertyAddress(mSelector: selector, mScope: scope, mElement: kAudioObjectPropertyElementMain)
     }
 
-    private static func inputChannels(_ id: AudioDeviceID) -> Int {
-        var addr = address(kAudioDevicePropertyStreamConfiguration, scope: kAudioDevicePropertyScopeInput)
+    private static func channels(_ id: AudioDeviceID, _ scope: AudioObjectPropertyScope) -> Int {
+        var addr = address(kAudioDevicePropertyStreamConfiguration, scope: scope)
         var size: UInt32 = 0
         guard AudioObjectGetPropertyDataSize(id, &addr, 0, nil, &size) == noErr, size > 0 else { return 0 }
         let raw = UnsafeMutableRawPointer.allocate(

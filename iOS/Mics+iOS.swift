@@ -24,6 +24,10 @@ enum Mics {
         }
     }
 
+    /// Story 020 is Mac first: on iOS the session routes the output (the system default here); speaker, receiver and
+    /// the route picker are ad-0er's follow-up.
+    static func outputs() -> [Output] { [] }
+
     static func all() -> [Mic] {
         (AVAudioSession.sharedInstance().availableInputs ?? []).map { port in
             Mic(uid: port.uid, name: port.portName, kind: kind(port.portType))

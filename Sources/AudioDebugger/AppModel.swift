@@ -25,6 +25,7 @@ private enum Key {
     static let mic = "micUID"
     static let noiseReduction = "noiseReduction"
     static let voiceBoost = "voiceBoost"
+    static let output = "outputUID"
 }
 
 @MainActor @Observable
@@ -37,6 +38,10 @@ final class AppModel {
     private(set) var input: InputFormat?
     /// The mic and rate `input` was last opened at, so a route change can refresh its name and call mode.
     private var opened: (mic: Mic, rate: Double)?
+    /// Story 020 (Mac): the replay's output, chosen apart from the mic and remembered; nil wanted is the system
+    /// default.
+    private(set) var output = OutputChoice(
+        wanted: UserDefaults.standard.string(forKey: Key.output), outputs: [])
 
     // Live readings, refreshed 30 times a second.
     private(set) var waveform: [Float] = []
@@ -129,8 +134,12 @@ final class AppModel {
     func start() {
         guard timer == nil else { return }
         capture.onFailure = { [weak self] in self?.captureFailed() }
-        Mics.onChange { [weak self] in self?.micsChanged() }
+        Mics.onChange { [weak self] in
+            self?.micsChanged()
+            self?.outputsChanged()
+        }
         Mics.onRouteChange { [weak self] in self?.refreshInput() }
+        outputsChanged()
         AVCaptureDevice.requestAccess(for: .audio) { granted in
             Task { @MainActor [weak self] in
                 Log.mic.info("microphone access: \(granted ? "granted" : "denied", privacy: .public)")
@@ -168,6 +177,37 @@ final class AppModel {
             micControl.devicesChanged(
                 list, authorized: AVCaptureDevice.authorizationStatus(for: .audio) == .authorized,
                 remembered: rememberedMic, now: Date()))
+    }
+
+    // MARK: Output (story 020)
+
+    /// The device list changed (or first load): the remembered output is used if it is plugged in, else the default.
+    private func outputsChanged() {
+        let before = output.active
+        output = OutputChoice(wanted: output.wanted, outputs: Mics.outputs())
+        if output.active != before || output.missing { applyOutput() }
+    }
+
+    /// O: the system default, then each output in turn. Remembered.
+    func nextOutput() {
+        selectOutput(OutputChoice(wanted: output.wanted, outputs: Mics.outputs()).next().wanted)
+    }
+
+    /// Play replay on `uid` (nil: the system default), remembered across launches.
+    func selectOutput(_ uid: String?) {
+        output = OutputChoice(wanted: uid, outputs: Mics.outputs())
+        UserDefaults.standard.set(uid, forKey: Key.output)
+        SessionLog.shared.event("output", ["name": output.active?.name ?? "system default"])
+        applyOutput()
+    }
+
+    private func applyOutput() {
+        #if os(macOS)
+        player.outputDevice = output.active.flatMap { Mics.deviceID(uid: $0.uid) }
+        #endif
+        let missing = output.missing ? " (chosen output not plugged in)" : ""
+        Log.replay.info(
+            "output: \(self.output.active?.name ?? "system default", privacy: .public)\(missing, privacy: .public)")
     }
 
     /// The user picked a mic: remember it, so it comes back by itself after being unplugged.

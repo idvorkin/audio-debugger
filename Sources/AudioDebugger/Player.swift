@@ -21,6 +21,20 @@ final class Player {
     var muted = false {
         didSet { engine?.mainMixerNode.outputVolume = muted ? 0 : 1 }
     }
+    #if os(macOS)
+    /// Story 020: the Core Audio device replay plays on; nil is the system default. Changing it rebuilds an open
+    /// engine on the same transport, so the replay carries on where it was, on the new output.
+    var outputDevice: AudioDeviceID? {
+        didSet {
+            guard outputDevice != oldValue, engine != nil, engineRate > 0 else { return }
+            do {
+                try makeEngine(sampleRate: engineRate)
+            } catch {
+                Log.replay.error("output switch failed: \(String(describing: error), privacy: .public)")
+            }
+        }
+    }
+    #endif
 
     var transport: Transport { state.withLock { $0.transport } }
 
@@ -89,6 +103,17 @@ final class Player {
     private func makeEngine(sampleRate: Double) throws {
         stopEngine()
         let engine = AVAudioEngine()
+        #if os(macOS)
+        // Before anything is connected, so the output's format is the chosen device's.
+        if var device = outputDevice, let unit = engine.outputNode.audioUnit {
+            let status = AudioUnitSetProperty(
+                unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &device,
+                UInt32(MemoryLayout<AudioDeviceID>.size))
+            if status != noErr {
+                Log.replay.error("could not play on device \(device): status \(status); using the system default")
+            }
+        }
+        #endif
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1) else {
             throw CaptureError.noFormat
         }

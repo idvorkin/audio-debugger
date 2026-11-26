@@ -94,6 +94,7 @@ extension AppModel {
             case "h": openNoiseGuide()
             #if os(macOS)
             case "m": captureSet(shift ? .inTurn : .together)  // stories 017/018
+            case "o": nextOutput()  // story 020
             #endif
             default: return false
             }

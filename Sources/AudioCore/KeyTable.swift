@@ -51,6 +51,7 @@ public enum KeyTable {
         KeyEntry("S", "Save the last 20 s as a WAV with its measurements", [.init("s", "Save Sample")]),
         // Mac only (stories 017/018), so no iPad command.
         KeyEntry("M / ⇧M", "Mac: capture every mic to one set, at once / in turn (Esc stops)"),
+        KeyEntry("O", "Mac: replay on the next output (system default, then each speaker or headphone)"),
         KeyEntry("⇥", "Capture set: back to the row played before, at the same place (A/B)"),
         KeyEntry("⌘O / ⌘R", "Mac: open a capture set / reveal it in Finder"),
         KeyEntry(

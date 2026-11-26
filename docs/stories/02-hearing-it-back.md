@@ -113,3 +113,34 @@ later, or hand the clip to another tool.
 **Notes**: The folder is `SessionLog.root` (`~/Library/Application Support/AudioDebugger/` on the Mac, the app's
 Documents on iOS; `selftest/` inside it for scripted runs). On iOS the folder is not yet visible in the Files app.
 Nothing is uploaded.
+
+## 020 — Choose the speakers apart from the mic
+
+**Summary**: Replay plays on an output chosen apart from the mic: O steps through the outputs (the system default
+first, then every speaker and headphone), the choice is remembered, and a line under the input line names it. An
+unplugged choice falls back to the system default and comes back when it is plugged in again.
+**Status**: Planned (ad-0er)
+**Why**: "audio debugger also lets select speakers independent of mic" (Igor, 2026-11-26): test the USB mic while
+listening on the Mac's speakers, or the built-in mic on headphones, without changing the Mac's own output.
+
+**Use Case**: As Igor, I want replay on the headphones I choose whatever mic is open, so that I can listen closely
+without changing the Mac's sound settings.
+
+**Acceptance Criteria**
+
+- Scenario: Step to another output
+  - Given the system output is the Mac's speakers and headphones are plugged in
+  - When I press O until the output line names the headphones, then press R
+  - Then the last 5 s play in the headphones, and the Mac's own output setting is unchanged
+- Scenario: Remembered
+  - Given I chose the headphones
+  - When I quit and reopen the app
+  - Then replay still plays in the headphones
+- Scenario: Unplugged
+  - Given I chose the headphones and they are unplugged
+  - When I press R
+  - Then the replay plays on the system default, the output line says the chosen output is missing, and it is used
+    again once plugged back in
+
+**Notes**: Mac first. The iPhone and iPad (speaker or receiver, the system route picker, and a Bluetooth headset's
+input tying its output to the same headset) are ad-0er's follow-up.

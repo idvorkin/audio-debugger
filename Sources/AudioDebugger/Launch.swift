@@ -102,6 +102,7 @@ enum SelfTest {
             )
             #if os(macOS)
             await captureSets(model)
+            await outputs(model)
             #endif
             Log.selftest.info("selftest done")
             quitApp()
@@ -109,6 +110,27 @@ enum SelfTest {
     }
 
     #if os(macOS)
+    /// Story 020: list the outputs, play a replay (muted) on the built-in speakers, step with O, then put the
+    /// remembered choice back as it was: the selftest shares the app's settings.
+    private static func outputs(_ model: AppModel) async {
+        let remembered = model.output.wanted
+        let names = model.output.outputs.map(\.name)
+        Log.selftest.info("outputs: \(names.joined(separator: ", "), privacy: .public)")
+        if let builtIn = model.output.outputs.first(where: { $0.name.contains("MacBook") }) {
+            model.selectOutput(builtIn.uid)
+            _ = model.press(.character("r"), shift: false)
+            try? await Task.sleep(for: .seconds(0.5))
+            Log.selftest.info(
+                "output chosen: \(model.output.active?.name ?? "system default", privacy: .public); replay playing \(model.playing, privacy: .public)"
+            )
+            model.closeReplay()
+        }
+        _ = model.press(.character("o"), shift: false)
+        Log.selftest.info("O: \(model.output.active?.name ?? "system default", privacy: .public)")
+        model.selectOutput(remembered)
+        Log.selftest.info("output restored: \(model.output.wanted ?? "system default", privacy: .public)")
+    }
+
     /// Stories 017/018: M, then ⇧M, through the keys: a 2 s capture set at once, then in turn, of the `--mic` mics
     /// only, so a selftest never opens AirPods or wakes an iPhone (without `--mic` the app refuses). Checks each
     /// manifest and its files.
