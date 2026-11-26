@@ -15,23 +15,48 @@ struct CaptureRun: Equatable {
 /// sample sidecar (with the mic's score) per mic, and `manifest.json` (AudioCore's `CaptureSet`). Each mic gets its
 /// own `Capture`; the live mic carries on. Spec: docs/specs/2026-11-26-compare-mics.md.
 extension AppModel {
-    /// M / ⇧M. A scripted run (selftest) keeps only the `--mic` mics and takes 2 s each, and refuses without `--mic`,
-    /// so a script never opens AirPods or wakes a phone.
+    /// M / ⇧M: open the capture picker (a switch per mic, at once or in turn, seconds), remembering the last choice.
+    /// A scripted run (selftest) skips the picker: only the `--mic` mics, 2 s each, and it refuses without `--mic`, so
+    /// a script never opens AirPods or wakes a phone.
     func captureSet(_ mode: CaptureSet.Mode) {
         guard captureRun == nil else { return }
-        let filter = Launch.scripted ? Launch.micName : nil
-        if Launch.scripted && filter == nil {
-            Log.app.error("capture set refused: a scripted run needs --mic to choose its mics")
+        if Launch.scripted {
+            guard let filter = Launch.micName else {
+                Log.app.error("capture set refused: a scripted run needs --mic to choose its mics")
+                return
+            }
+            startCapture(mode, mode.mics(from: mics, matching: filter), seconds: 2)
             return
         }
-        let chosen = mode.mics(from: mics, matching: filter)
+        openCapturePicker(mode)
+    }
+
+    /// The picker alone (story 021): nothing opens until Return.
+    func openCapturePicker(_ mode: CaptureSet.Mode) {
+        let remembered = (UserDefaults.standard.array(forKey: Self.captureMicsKey) as? [String]).map(Set.init)
+        capturePlan = CapturePlan(mics: mics, remembered: remembered, mode: mode)
+        SessionLog.shared.event("capture_picker", ["mode": mode.rawValue])
+    }
+
+    /// Return in the picker: remember the choice and take the set.
+    func startCapturePlan() {
+        guard let plan = capturePlan else { return }
+        guard !plan.selected.isEmpty else { return }
+        UserDefaults.standard.set(Array(plan.chosen), forKey: Self.captureMicsKey)
+        capturePlan = nil
+        startCapture(plan.mode, plan.selected, seconds: plan.seconds)
+    }
+
+    static let captureMicsKey = "captureMics"
+
+    private func startCapture(_ mode: CaptureSet.Mode, _ chosen: [Mic], seconds secs: Double) {
+        guard captureRun == nil else { return }
         guard !chosen.isEmpty else {
             Log.app.info("capture set: no mics to capture (\(mode.rawValue, privacy: .public))")
             captureRun = CaptureRun(mode: mode, status: "No mics to capture")
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { MainActor.assumeIsolated { self.captureRun = nil } }
             return
         }
-        let secs: Double = Launch.scripted ? 2 : (mode == .together ? 10 : 6)
         SessionLog.shared.event(
             "capture_set_start", ["mode": mode.rawValue, "mics": chosen.map(\.name), "seconds": secs])
         // Set now, not in the task: a second M, or a caller waiting on the run, sees it at once.

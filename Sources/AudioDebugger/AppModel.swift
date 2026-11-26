@@ -91,6 +91,8 @@ final class AppModel {
     var captureRun: CaptureRun?
     var captureSaved: String?
     var captureTask: Task<Void, Never>?
+    /// The capture picker (M), while it is up: which mics, at once or in turn, how long.
+    var capturePlan: CapturePlan?
     /// Story 019 (Mac): the capture set open for comparison, its folder name, the row playing and the one before.
     var comparison: Comparison?
     var comparisonName: String?

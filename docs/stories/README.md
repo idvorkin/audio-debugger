@@ -34,7 +34,7 @@ Mike Cohn use case plus Gherkin acceptance criteria. Each story: **Summary**, **
 | N / B | Noise reduction / voice boost on and off |
 | C | Reset held peaks, clip count and the noise readout |
 | S | Save the last 20 s as a WAV with its measurements |
-| M / ⇧M | Mac: capture every mic to one set, at once / in turn (Esc stops) |
+| M / ⇧M | Mac: pick mics to capture into one set, at once / in turn; in the picker 1–9 switch a mic, T at once or in turn, ← / → seconds, Return starts (Esc stops) |
 | O | Mac: replay on the next output (system default, then each speaker or headphone) |
 | ⇥ | Capture set: back to the row played before, at the same place (A/B) |
 | ⌘O / ⌘R | Mac: open a capture set / reveal it in Finder |

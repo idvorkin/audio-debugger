@@ -135,6 +135,21 @@ enum SelfTest {
     /// only, so a selftest never opens AirPods or wakes an iPhone (without `--mic` the app refuses). Checks each
     /// manifest and its files.
     private static func captureSets(_ model: AppModel) async {
+        // Story 021: the picker's keys, then Esc. Never Return: that would open the mics it lists.
+        model.openCapturePicker(.together)
+        let before = model.capturePlan.map { $0.selected.map(\.name) } ?? []
+        _ = model.press(.character("1"), shift: false)
+        _ = model.press(.character("t"), shift: false)
+        _ = model.press(.right, shift: false)
+        let plan = model.capturePlan
+        let risky = plan?.mics.filter { CapturePlan.risk($0) != nil && plan?.isOn($0) == false }.map(\.name) ?? []
+        Log.selftest.info(
+            "picker: on at first \(before.joined(separator: ", "), privacy: .public); risky off \(risky.joined(separator: ", "), privacy: .public); after 1 T →: \(plan?.selected.map(\.name).joined(separator: ", ") ?? "", privacy: .public), \(plan?.mode.rawValue ?? "", privacy: .public), \(Int(plan?.seconds ?? 0)) s"
+        )
+        _ = model.press(.escape, shift: false)
+        Log.selftest.info(
+            "picker Esc: closed \(model.capturePlan == nil, privacy: .public), capturing \(model.captureRun != nil, privacy: .public)"
+        )
         guard Launch.micName != nil else {
             Log.selftest.info("capture set: skipped (no --mic filter)")
             return

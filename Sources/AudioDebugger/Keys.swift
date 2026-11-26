@@ -45,6 +45,22 @@ extension AppModel {
             return true
         }
         #if os(macOS)
+        // Stories 017/018: the capture picker takes the keys while it is up: 1–9 switch a mic, T at once / in turn,
+        // ← / → seconds, Return starts, Esc cancels. ? still shows the keys; anything else does nothing.
+        if capturePlan != nil {
+            switch key {
+            case .character(let c) where Int(c).map { (1...9).contains($0) } == true:
+                capturePlan?.toggle((Int(c) ?? 1) - 1)
+            case .character("t"), .character("T"): capturePlan?.toggleMode()
+            case .left: capturePlan?.adjust(by: -1)
+            case .right: capturePlan?.adjust(by: 1)
+            case .character("\r"): startCapturePlan()
+            case .escape: capturePlan = nil
+            case .character("?"): showKeys = true
+            default: break
+            }
+            return true
+        }
         // Story 019: a capture set open for comparison claims the digits (rows, not mics), ⇥, Space and Esc first.
         if comparison != nil {
             switch key {
@@ -107,6 +123,8 @@ extension AppModel {
     func cancel() {
         if showKeys {
             showKeys = false
+        } else if capturePlan != nil {
+            capturePlan = nil
         } else if captureRun != nil {
             stopCaptureSet()
         } else if replayOpen {
