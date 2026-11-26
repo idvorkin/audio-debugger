@@ -86,6 +86,12 @@ final class AppModel {
     var captureRun: CaptureRun?
     var captureSaved: String?
     var captureTask: Task<Void, Never>?
+    /// Story 019 (Mac): the capture set open for comparison, its folder name, the row playing and the one before.
+    var comparison: Comparison?
+    var comparisonName: String?
+    var playingRow: Int?
+    var previousRow: Int?
+    var comparisonError: String?
 
     let capture = Capture()
     let player = Player()
@@ -102,6 +108,8 @@ final class AppModel {
     /// `micControl`'s one pending retry.
     private var pendingRetry: DispatchWorkItem?
     private var processGeneration = 0
+    /// Playing a capture set's stream: as recorded, never processed or normalized (`playRaw`).
+    private(set) var rawReplay = false
 
     init() {
         // BugKit's crash capture, first: a signal or uncaught exception writes a file in `<root>/crashes/`,
@@ -345,6 +353,8 @@ final class AppModel {
         processed = [:]
         replayLength = clip.count
         replayOpen = true
+        rawReplay = false
+        playingRow = nil
         SessionLog.shared.event(
             "replay",
             [
@@ -364,7 +374,7 @@ final class AppModel {
 
     /// Put the clip for the current toggles into the player, computing it off the main thread the first time.
     private func applyProcessing(keepPlace: Bool) {
-        guard replayOpen else { return }
+        guard replayOpen, !rawReplay else { return }
         let want = processing
         if let ready = processed[want] {
             load(ready, keepPlace: keepPlace)
@@ -451,4 +461,20 @@ final class AppModel {
     }
 
     func seconds(_ samples: Int) -> Double { Double(samples) / clipRate }
+
+    /// Story 019: play `clip` from `at` seconds as recorded, with no noise reduction, boost or normalizing, so the
+    /// level and floor differences between mics stay audible. The replay toggles are left as they are.
+    func playRaw(_ clip: [Float], rate: Double, at start: Double) {
+        guard !clip.isEmpty else { return }
+        processGeneration += 1
+        processingBusy = false
+        rawClip = clip
+        clipRate = rate
+        processed = [:]
+        replayLength = clip.count
+        replayOpen = true
+        rawReplay = true
+        load(clip, keepPlace: false)
+        seek(to: Int(start * rate))
+    }
 }

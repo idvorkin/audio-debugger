@@ -30,7 +30,7 @@ public struct KeyEntry: Sendable, Equatable {
 
 public enum KeyTable {
     public static let all: [KeyEntry] = [
-        KeyEntry("1–9", "Switch to that mic"),
+        KeyEntry("1–9", "Switch to that mic; in a capture set, play that row raw"),
         KeyEntry(
             "Space", "Play / pause the replay; with none open, replay the last 20 s", [.init("space", "Play / Pause")]),
         KeyEntry(
@@ -51,10 +51,12 @@ public enum KeyTable {
         KeyEntry("S", "Save the last 20 s as a WAV with its measurements", [.init("s", "Save Sample")]),
         // Mac only (stories 017/018), so no iPad command.
         KeyEntry("M / ⇧M", "Mac: capture every mic to one set, at once / in turn (Esc stops)"),
+        KeyEntry("⇥", "Capture set: back to the row played before, at the same place (A/B)"),
+        KeyEntry("⌘O / ⌘R", "Mac: open a capture set / reveal it in Finder"),
         KeyEntry(
             "H", "Open the noise explainer (what floor, speech and separation mean)", [.init("h", "Noise Explainer")]),
         KeyEntry("?", "Show every key", [.init("?", "Show Every Key")]),
-        KeyEntry("Esc or ⌘.", "Close the key sheet, else the replay"),
+        KeyEntry("Esc or ⌘.", "Close the key sheet, else the replay, else the capture set"),
         KeyEntry("⌘I", "Report a bug"),
         KeyEntry("⇧⌘N", "What's new"),
     ]

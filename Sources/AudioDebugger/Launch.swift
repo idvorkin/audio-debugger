@@ -140,6 +140,33 @@ enum SelfTest {
                 "capture set \(mode.rawValue, privacy: .public) captures/\(name, privacy: .public): \(files.sorted().joined(separator: " "), privacy: .public); streams \(streams?.joined(separator: "; ") ?? "no manifest", privacy: .public)"
             )
         }
+        // Story 019: the set just taken opens for comparison; 1 plays its first row raw (muted); Esc twice closes
+        // the replay, then the set.
+        var waited = 0
+        while (model.comparison == nil || model.comparisonName != model.captureSaved) && waited < 20 {
+            try? await Task.sleep(for: .seconds(0.25))
+            waited += 1
+        }
+        guard let c = model.comparison else {
+            Log.selftest.error("comparison: did not open")
+            return
+        }
+        let rows = c.rows.map { r in
+            "\(r.stream.name) score \(r.reading.map { "\($0.score)" } ?? "—") \(String(format: "%.2f", r.seconds))s"
+        }
+        Log.selftest.info(
+            "comparison \(model.comparisonName ?? "", privacy: .public): \(rows.joined(separator: "; "), privacy: .public)"
+        )
+        _ = model.press(.character("1"), shift: false)
+        try? await Task.sleep(for: .seconds(0.5))
+        Log.selftest.info(
+            "comparison play 1: row \(model.playingRow.map { $0 + 1 } ?? 0) replay open \(model.replayOpen, privacy: .public) playing \(model.playing, privacy: .public) length \(model.seconds(model.replayLength), format: .fixed(precision: 2), privacy: .public)s"
+        )
+        _ = model.press(.escape, shift: false)
+        _ = model.press(.escape, shift: false)
+        Log.selftest.info(
+            "comparison Esc Esc: replay open \(model.replayOpen, privacy: .public), set open \(model.comparison != nil, privacy: .public)"
+        )
     }
     #endif
 }

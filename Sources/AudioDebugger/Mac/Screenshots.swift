@@ -25,6 +25,15 @@ enum Screenshots {
             mark("replay", window, dir)
             await wait(2)
             model.closeReplay()
+            // Story 019: M takes a (2 s, --mic only) capture set, which opens for comparison; 1 plays its first row.
+            _ = model.press(.character("m"), shift: false)
+            for _ in 0..<40 where model.comparison == nil { await wait(0.25) }
+            _ = model.press(.character("1"), shift: false)
+            await wait(1)
+            mark("compare", window, dir)
+            await wait(2)
+            model.cancel()
+            model.cancel()
             // Story 016: the key sheet. It is a window attached to the main one, which `screencapture -l` can't grab
             // while the app is in the background ("could not create image from window"), so the app draws the sheet's
             // table to keys.png itself and the recipe copies it.

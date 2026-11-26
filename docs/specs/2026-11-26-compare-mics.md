@@ -103,18 +103,24 @@ Bandwidth: the mic's Nyquist (rate / 2), amber under 8 kHz (story 015's mark).
 
 ## The viewer (PR 2b)
 
-Reads only files: a capture set just taken, or an earlier one (Open, ⌘O; the newest opens after a take). Mac only,
-its UI under `Sources/AudioDebugger/Mac/`.
+Reads only files (AudioCore's `Comparison`, with a plain-Swift `WAV` reader): a capture set just taken, or an earlier
+one (⌘O; the set just taken opens by itself). Mac only, its UI in `Mac/CompareView.swift`. It takes the live panels'
+place in the main window (not a sheet: a sheet can't be screenshotted, and the window stays keyboard-driven); Esc or
+⌘. closes it.
 
-- One row per stream, **ranked best to worst** by score; failed streams last, their error in selectable text.
-- Per row: name, kind, rate and bandwidth, score and its parts (SNR, score floor, clipping, dropouts), peak, and the
-  sidecar's speech level and separation.
-- Waveforms aligned in time on one shared axis (by `offset`), and each row's spectrum (long-term average) overlaid in
-  one chart, so the band and the floor differences show at a glance.
-- **Listen**: digits 1–9 play that row through the existing replay panel (`Player`, so N / B and the transport work);
-  **⇥** swaps between the last two played at the same position, for A/B.
-- Reveal in Finder (⌘R); Share (the set's folder, `ShareLink`). Sharing is only ever user-initiated: the "Audio stays
-  on this Mac" rule names capture sets beside samples and bug reports.
+- One row per stream, **ranked best to worst** by score (recomputed from the WAV, so an old set scores as a new one);
+  failed streams last, their error in selectable text.
+- Per row: name, kind, score and its parts (SNR, score floor, clipped and dropout pieces), peak, rate and top
+  frequency (amber under 8 kHz).
+- Waveforms on one shared time axis (placed by `offset`), all at one gain (the loudest row's peak fills its lane), so
+  a quieter mic looks quieter; and every row's long-term spectrum overlaid on one log-frequency chart.
+- **Listen raw**: digits 1–9 play that row through the replay panel **as recorded**: no noise reduction, no boost, no
+  normalizing, because those would erase the level and floor differences being compared. N / B are disabled while a
+  row plays and the saved toggles are untouched. A digit carries the place over from the row playing, on the set's
+  timeline (seconds plus offset, since rows differ in rate and start); **⇥** goes back to the row played before, at the
+  same place, for A/B. Space with nothing playing plays the last row (or row 1).
+- Reveal in Finder (⌘R). Sharing a set or a sample (`ShareLink`) is ad-ejj, a separate change; when it lands, sharing
+  is only ever user-initiated.
 
 Every viewer action has a key, in `KeyTable` and "Keys at a glance" together.
 

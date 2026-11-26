@@ -311,8 +311,11 @@ struct ReplayPanel: View {
         VStack(spacing: 6) {
             HStack {
                 Text("Replay").font(.headline)
-                Text(model.processing.label.isEmpty ? "raw (normalized)" : model.processing.label).foregroundStyle(
-                    .secondary)
+                Text(
+                    model.rawReplay
+                        ? "capture set row, as recorded (no processing)"
+                        : model.processing.label.isEmpty ? "raw (normalized)" : model.processing.label
+                ).foregroundStyle(.secondary)
                 if model.processingBusy {
                     ProgressView().controlSize(.small); Text("processing…").foregroundStyle(.secondary)
                 }
@@ -377,11 +380,13 @@ struct ReplayPanel: View {
             isOn: Binding(get: { model.processing.noiseReduction }, set: { model.processing.noiseReduction = $0 })
         )
         .fixedSize()
+        .disabled(model.rawReplay)  // a capture set row plays as recorded (story 019)
         Toggle(
             keyed("Voice boost", "B"),
             isOn: Binding(get: { model.processing.voiceBoost }, set: { model.processing.voiceBoost = $0 })
         )
         .fixedSize()
+        .disabled(model.rawReplay)
     }
 
     private var close: some View {

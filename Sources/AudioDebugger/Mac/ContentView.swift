@@ -42,16 +42,23 @@ struct ContentView: View {
                 Text("Saved capture set captures/\(saved)").foregroundStyle(green).font(.callout)
                     .textSelection(.enabled)
             }
+            if let error = model.comparisonError {
+                Text(error).foregroundStyle(red).font(.callout).textSelection(.enabled)
+            }
             if let error = model.micError {
                 Text(error).foregroundStyle(red).font(.callout)
             }
-            HStack(spacing: 8) {
-                VStack(spacing: 8) {
-                    Plot(title: "Waveform (auto-zoomed)") { WaveformShape(samples: model.waveform) }
-                    Plot(title: "Spectrum") { SpectrumView() }
-                    Plot(title: "Spectrogram (0–8 kHz)") { SpectrogramView() }
+            if model.comparison != nil {
+                CompareView()  // story 019: a capture set takes the panels' place until Esc
+            } else {
+                HStack(spacing: 8) {
+                    VStack(spacing: 8) {
+                        Plot(title: "Waveform (auto-zoomed)") { WaveformShape(samples: model.waveform) }
+                        Plot(title: "Spectrum") { SpectrumView() }
+                        Plot(title: "Spectrogram (0–8 kHz)") { SpectrogramView() }
+                    }
+                    Plot(title: "Level dBFS") { MeterView() }.frame(width: 110)
                 }
-                Plot(title: "Level dBFS") { MeterView() }.frame(width: 110)
             }
             if model.replayOpen { ReplayPanel().frame(height: 210) }
         }
