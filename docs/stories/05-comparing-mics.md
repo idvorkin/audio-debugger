@@ -59,8 +59,11 @@ that can't record together.
 ## 019 — Compare a capture set
 
 **Summary**: A viewer loads a capture set, just taken or earlier (⌘O), and ranks the mics best to worst with a
-0–100 score and the numbers behind it, aligned waveforms and spectra, and one key per mic to listen and A/B.
-**Status**: Planned (ad-ppq)
+0–100 score and the numbers behind it, aligned waveforms and spectra, and one key per mic to listen (as recorded)
+and A/B.
+**Status**: Built in 542531c (ad-ppq). Host test: a four-stream fixture set loads, ranks, aligns and maps A/B places.
+Selftest: the one-mic set just taken opens, 1 plays it raw, Esc Esc closes. Three mics, ⇥ by ear and ⌘O: to verify
+by Igor (run).
 **Why**: "comparison views... pick the best and the worst" (Igor, 2026-11-26).
 
 **Use Case**: As Igor, I want the mics side by side with a ranking, so that I can pick the best and see why the worst
