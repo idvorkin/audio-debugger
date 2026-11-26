@@ -25,6 +25,7 @@ private enum Key {
     static let mic = "micUID"
     static let noiseReduction = "noiseReduction"
     static let voiceBoost = "voiceBoost"
+    static let output = "outputUID"
 }
 
 @MainActor @Observable
@@ -37,6 +38,10 @@ final class AppModel {
     private(set) var input: InputFormat?
     /// The mic and rate `input` was last opened at, so a route change can refresh its name and call mode.
     private var opened: (mic: Mic, rate: Double)?
+    /// Story 020 (Mac): the replay's output, chosen apart from the mic and remembered; nil wanted is the system
+    /// default.
+    private(set) var output = OutputChoice(
+        wanted: UserDefaults.standard.string(forKey: Key.output), outputs: [])
 
     // Live readings, refreshed 30 times a second.
     private(set) var waveform: [Float] = []
@@ -82,6 +87,18 @@ final class AppModel {
     var showAbout = false
     /// The folder of the sample just saved (Sample.swift), shown for a few seconds.
     var sampleSaved: String?
+    /// Stories 017/018 (Mac): the capture set being taken, what it is doing, and the folder of the last one saved.
+    var captureRun: CaptureRun?
+    var captureSaved: String?
+    var captureTask: Task<Void, Never>?
+    /// Story 019 (Mac): the capture set open for comparison, its folder name, the row playing and the one before.
+    var comparison: Comparison?
+    var comparisonName: String?
+    /// Where the open set was loaded from (⌘O can open one outside `captures/`), for Reveal.
+    var comparisonFolder: URL?
+    var playingRow: Int?
+    var previousRow: Int?
+    var comparisonError: String?
 
     let capture = Capture()
     let player = Player()
@@ -98,6 +115,8 @@ final class AppModel {
     /// `micControl`'s one pending retry.
     private var pendingRetry: DispatchWorkItem?
     private var processGeneration = 0
+    /// Playing a capture set's stream: as recorded, never processed or normalized (`playRaw`).
+    private(set) var rawReplay = false
 
     init() {
         // BugKit's crash capture, first: a signal or uncaught exception writes a file in `<root>/crashes/`,
@@ -117,8 +136,12 @@ final class AppModel {
     func start() {
         guard timer == nil else { return }
         capture.onFailure = { [weak self] in self?.captureFailed() }
-        Mics.onChange { [weak self] in self?.micsChanged() }
+        Mics.onChange { [weak self] in
+            self?.micsChanged()
+            self?.outputsChanged()
+        }
         Mics.onRouteChange { [weak self] in self?.refreshInput() }
+        outputsChanged()
         AVCaptureDevice.requestAccess(for: .audio) { granted in
             Task { @MainActor [weak self] in
                 Log.mic.info("microphone access: \(granted ? "granted" : "denied", privacy: .public)")
@@ -149,12 +172,44 @@ final class AppModel {
     /// The device list changed (or first load). The decisions are `MicController`'s; this carries them out.
     private func micsChanged() {
         let list = Mics.all()
-        Log.mic.info("mics: \(list.map(\.name).joined(separator: ", "), privacy: .public)")
+        Log.mic.info(
+            "mics: \(list.map { "\($0.name) (\($0.kind.rawValue))" }.joined(separator: ", "), privacy: .public)")
         SessionLog.shared.event("mics", ["names": list.map(\.name)])
         perform(
             micControl.devicesChanged(
                 list, authorized: AVCaptureDevice.authorizationStatus(for: .audio) == .authorized,
                 remembered: rememberedMic, now: Date()))
+    }
+
+    // MARK: Output (story 020)
+
+    /// The device list changed (or first load): the remembered output is used if it is plugged in, else the default.
+    private func outputsChanged() {
+        let before = output.active
+        output = OutputChoice(wanted: output.wanted, outputs: Mics.outputs())
+        if output.active != before || output.missing { applyOutput() }
+    }
+
+    /// O: the system default, then each output in turn. Remembered.
+    func nextOutput() {
+        selectOutput(OutputChoice(wanted: output.wanted, outputs: Mics.outputs()).next().wanted)
+    }
+
+    /// Play replay on `uid` (nil: the system default), remembered across launches.
+    func selectOutput(_ uid: String?) {
+        output = OutputChoice(wanted: uid, outputs: Mics.outputs())
+        UserDefaults.standard.set(uid, forKey: Key.output)
+        SessionLog.shared.event("output", ["name": output.active?.name ?? "system default"])
+        applyOutput()
+    }
+
+    private func applyOutput() {
+        #if os(macOS)
+        player.outputDevice = output.active.flatMap { Mics.deviceID(uid: $0.uid) }
+        #endif
+        let missing = output.missing ? " (chosen output not plugged in)" : ""
+        Log.replay.info(
+            "output: \(self.output.active?.name ?? "system default", privacy: .public)\(missing, privacy: .public)")
     }
 
     /// The user picked a mic: remember it, so it comes back by itself after being unplugged.
@@ -340,6 +395,8 @@ final class AppModel {
         processed = [:]
         replayLength = clip.count
         replayOpen = true
+        rawReplay = false
+        playingRow = nil
         SessionLog.shared.event(
             "replay",
             [
@@ -359,7 +416,7 @@ final class AppModel {
 
     /// Put the clip for the current toggles into the player, computing it off the main thread the first time.
     private func applyProcessing(keepPlace: Bool) {
-        guard replayOpen else { return }
+        guard replayOpen, !rawReplay else { return }
         let want = processing
         if let ready = processed[want] {
             load(ready, keepPlace: keepPlace)
@@ -446,4 +503,20 @@ final class AppModel {
     }
 
     func seconds(_ samples: Int) -> Double { Double(samples) / clipRate }
+
+    /// Story 019: play `clip` from `at` seconds as recorded, with no noise reduction, boost or normalizing, so the
+    /// level and floor differences between mics stay audible. The replay toggles are left as they are.
+    func playRaw(_ clip: [Float], rate: Double, at start: Double) {
+        guard !clip.isEmpty else { return }
+        processGeneration += 1
+        processingBusy = false
+        rawClip = clip
+        clipRate = rate
+        processed = [:]
+        replayLength = clip.count
+        replayOpen = true
+        rawReplay = true
+        load(clip, keepPlace: false)
+        seek(to: Int(start * rate))
+    }
 }

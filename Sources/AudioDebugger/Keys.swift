@@ -39,6 +39,31 @@ extension AppModel {
             if key == .escape { showKeys = false }
             return true
         }
+        // Stories 017/018: Esc stops a capture set being taken.
+        if captureRun != nil && key == .escape {
+            stopCaptureSet()
+            return true
+        }
+        #if os(macOS)
+        // Story 019: a capture set open for comparison claims the digits (rows, not mics), ⇥, Space and Esc first.
+        if comparison != nil {
+            switch key {
+            case .character(let c) where Int(c).map { (1...9).contains($0) } == true:
+                playRow((Int(c) ?? 1) - 1)
+                return true
+            case .character("\t"):
+                swapRows()
+                return true
+            case .space where !replayOpen:
+                playRow(playingRow ?? 0)
+                return true
+            case .escape:
+                if replayOpen { closeReplay() } else { closeComparison() }
+                return true
+            default: break
+            }
+        }
+        #endif
         switch key {
         case .space: togglePlay()  // play/pause, or open the last 20 s
         case .escape: closeReplay()
@@ -67,15 +92,30 @@ extension AppModel {
             case "c": resetReadings()
             case "s": saveSample()
             case "h": openNoiseGuide()
+            #if os(macOS)
+            case "m": captureSet(shift ? .inTurn : .together)  // stories 017/018
+            case "o": nextOutput()  // story 020
+            #endif
             default: return false
             }
         }
         return true
     }
 
-    /// ⌘. (the iPad's Folio has no Esc): the key sheet first, else the replay.
+    /// ⌘. (the iPad's Folio has no Esc): the key sheet first, then a capture set being taken, then the replay, then
+    /// the capture set open for comparison.
     func cancel() {
-        if showKeys { showKeys = false } else { closeReplay() }
+        if showKeys {
+            showKeys = false
+        } else if captureRun != nil {
+            stopCaptureSet()
+        } else if replayOpen {
+            closeReplay()
+        } else {
+            #if os(macOS)
+            closeComparison()
+            #endif
+        }
     }
 }
 

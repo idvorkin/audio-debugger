@@ -10,6 +10,7 @@ mic, AirPods on his head (often playing music).
 | [Hearing it back](02-hearing-it-back.md) | The always-on replay, its transport, noise reduction and voice boost. |
 | [When something is wrong](03-reporting.md) | Reporting a bug with the audio that showed it, crashes, and what changed. |
 | [On the phone](04-on-the-phone.md) | The iPhone and iPad app: the same scope by touch, the mic choice, capture in the background. |
+| [Comparing mics](05-comparing-mics.md) | Mac: every mic captured to one set, at once or in turn, and a viewer that ranks them. |
 
 ## Format
 
@@ -25,7 +26,7 @@ Mike Cohn use case plus Gherkin acceptance criteria. Each story: **Summary**, **
 
 | Key | Action |
 |---|---|
-| 1–9 | Switch to that mic |
+| 1–9 | Switch to that mic; in a capture set, play that row raw |
 | Space | Play / pause the replay; with none open, replay the last 20 s |
 | R / T / Y | Replay the last 5 / 10 / 20 s |
 | A | Replay from the start |
@@ -33,8 +34,12 @@ Mike Cohn use case plus Gherkin acceptance criteria. Each story: **Summary**, **
 | N / B | Noise reduction / voice boost on and off |
 | C | Reset held peaks, clip count and the noise readout |
 | S | Save the last 20 s as a WAV with its measurements |
+| M / ⇧M | Mac: capture every mic to one set, at once / in turn (Esc stops) |
+| O | Mac: replay on the next output (system default, then each speaker or headphone) |
+| ⇥ | Capture set: back to the row played before, at the same place (A/B) |
+| ⌘O / ⌘R | Mac: open a capture set / reveal it in Finder |
 | H | Open the noise explainer (what floor, speech and separation mean) |
 | ? | Show every key |
-| Esc or ⌘. | Close the key sheet, else the replay |
+| Esc or ⌘. | Close the key sheet, else the replay, else the capture set |
 | ⌘I | Report a bug |
 | ⇧⌘N | What's new |

@@ -73,7 +73,7 @@ extension AppModel {
 }
 
 /// A saved sample's sidecar: numbers stay numbers, so `jq` compares them.
-private func sampleSidecar(_ x: [Float], rate: Double, mic: String, commit: String) -> [String: Any] {
+func sampleSidecar(_ x: [Float], rate: Double, mic: String, commit: String) -> [String: Any] {
     var d: [String: Any] = [
         "mic": mic, "sample_rate": rate, "seconds": jsonNumber(Double(x.count) / rate, places: 2), "commit": commit,
         "saved_at": ISO8601DateFormatter().string(from: Date()), "audio": "raw (no noise reduction or boost)",

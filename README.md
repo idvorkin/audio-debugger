@@ -25,6 +25,15 @@ A native macOS app for finding out how a microphone actually sounds: see the sig
   (download the file to read it offline; the Mac app bundles it).
 - **Save sample (S)**: the last 20 s as a WAV, raw, with a JSON sidecar of its measured floor, speech level,
   separation, peak and clipped samples, under `~/Library/Application Support/AudioDebugger/samples/`.
+- **Capture every mic (M, Mac)**: 10 s from every mic at once (Bluetooth and iPhone mics are left alone, so AirPods
+  keep their music quality) into one capture set under `captures/`: a raw WAV and a sidecar with a 0–100 score per
+  mic, and `manifest.json` that lines the streams up. **⇧M** takes each mic in turn, all of them, 6 s each, with a
+  phrase to say. Esc stops.
+- **Compare a capture set (Mac)**: the set just taken opens by itself, or any earlier one with ⌘O. Mics are ranked best
+  to worst with the numbers behind the score, their waveforms lined up in time and their spectra overlaid; 1–9 play a
+  mic as recorded, and ⇥ flips back to the one before at the same place.
+
+![Capture set viewer: mics ranked by score, aligned waveforms, overlaid spectra](docs/compare.png)
 
 ## Hearing it back
 
@@ -40,6 +49,9 @@ replays 20 s). **?** lists every key; on an iPad, holding ⌘ does too, and ⌘.
 - **Noise reduction (N)**: spectral gating, with the noise profile learned from the quietest moments of the clip.
 - **Voice boost (B)**: voice band only (90 Hz–7.5 kHz), speech brought to -16 dBFS, peaks soft-limited.
 - Toggle either while it plays: it keeps your place, so you can A/B the difference.
+- **Output (O, Mac)**: replay plays on an output chosen apart from the mic (the system default, then each speaker or
+  headphone in turn), named on the line under the input and remembered. An unplugged choice falls back to the system
+  default until it is back. The Mac's own sound settings are never changed.
 
 On a hissy mic, the two together raise the voice above the hiss between words by more than 15 dB (a host test).
 
