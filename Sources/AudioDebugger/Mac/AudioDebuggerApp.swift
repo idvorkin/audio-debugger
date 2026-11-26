@@ -40,7 +40,12 @@ struct DebuggerCommands: Commands {
     let model: AppModel
 
     var body: some Commands {
-        CommandGroup(replacing: .newItem) {}
+        CommandGroup(replacing: .newItem) {
+            // Story 019.
+            Button("Open Capture Set…") { model.chooseComparison() }.keyboardShortcut("o")
+            Button("Reveal Capture Set in Finder") { model.revealComparison() }.keyboardShortcut("r")
+                .disabled(model.comparison == nil)
+        }
         CommandGroup(replacing: .help) {
             Button("Report a Bug…") { model.showBugReport = true }.keyboardShortcut("i")
             Button("What's New") { model.showWhatsNew = true }.keyboardShortcut("n", modifiers: [.command, .shift])

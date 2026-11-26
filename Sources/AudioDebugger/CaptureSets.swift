@@ -162,6 +162,9 @@ extension AppModel {
             Log.app.info(
                 "saved capture set captures/\(name, privacy: .public): \(ok) of \(set.streams.count) mics recorded")
             captureSaved = name
+            #if os(macOS)
+            openComparison(folder)  // story 019: the set just taken opens for comparison
+            #endif
         } catch {
             Log.app.error("capture set failed: \(String(describing: error), privacy: .public)")
             captureRun = CaptureRun(mode: set.mode, status: "Could not save: \(error.localizedDescription)")
