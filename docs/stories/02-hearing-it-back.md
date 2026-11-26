@@ -86,7 +86,9 @@ recording: floor -61.7, speech -16.2, separation 45.5 dB GOOD; the app layer cro
 2026-11-24, the selftest saved `sample.wav` (48 kHz mono float32) and `sample.json` with numbers in tenths. Later
 that day the selftest on AirPods (24 kHz) wrote `"seconds" : 17.940000000000001` for a clip under 20 s; seconds now
 print in hundredths (host test `sidecarNumbersPrintShort`, then the selftest on AirPods wrote `13.94`). S revealing
-the WAV in Finder owed to a run)
+the WAV in Finder owed to a run). Share and Reveal (ad-ejj) built in 0e16634: selftest logs Share handing over
+`sample.wav sample.json`, both on disk; `just ios-build`. The share sheet itself, on the Mac and the iPhone: to
+verify by Igor (run)
 **Why**: "So I could take my live samples and maybe save them": a room or a mic, kept to compare later.
 
 **Use Case**: As Igor, I want to keep the last 20 seconds with its numbers, so that I can compare mics and rooms
@@ -109,10 +111,19 @@ later, or hand the clip to another tool.
   - Given the bug-kit listener reads the app's folder
   - When I save a sample
   - Then nothing is written under `bugs/`, so no bead is filed
+- Scenario: Share it (ad-ejj)
+  - Given I saved a sample on the iPhone
+  - When I tap Share sample
+  - Then the system share sheet offers `sample.wav` and `sample.json` (AirDrop to the Mac, Messages, Files…)
+- Scenario: Share or reveal on the Mac (ad-ejj)
+  - Given I saved a sample, or a capture set is open (story 019)
+  - When I press ⇧⌘S, or ⌘R
+  - Then the share menu offers the set's folder, else the sample's two files; ⌘R shows them in Finder
 
 **Notes**: The folder is `SessionLog.root` (`~/Library/Application Support/AudioDebugger/` on the Mac, the app's
-Documents on iOS; `selftest/` inside it for scripted runs). On iOS the folder is not yet visible in the Files app.
-Nothing is uploaded.
+Documents on iOS; `selftest/` inside it for scripted runs). On iOS the folder is not yet visible in the Files app, so
+Share is the way off the phone. Nothing is uploaded: sharing happens only when Igor asks, through the system's own
+share sheet.
 
 ## 020 — Choose the speakers apart from the mic
 

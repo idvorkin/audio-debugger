@@ -8,14 +8,14 @@ public struct CaptureSet: Codable, Equatable, Sendable {
     public static let phrase = "Six thick thistle sticks. A quick brown fox jumps over the lazy dog."
 
     public enum Mode: String, Codable, Sendable {
-        /// M: every mic at once, except Bluetooth (opening AirPods drops them into call mode) and Continuity iPhones
-        /// (opening one wakes the phone).
+        /// M: the chosen mics at once (story 021's picker chooses them).
         case together
-        /// ⇧M: each mic in turn, all of them, the same phrase each time.
+        /// ⇧M: the chosen mics each in turn, the same phrase each time.
         case inTurn
 
-        /// The mics this mode records, in list order; `matching` (a scripted run's filter) keeps those whose name
-        /// contains it, ignoring case.
+        /// A scripted run's mics, which skips the picker, in list order: at once leaves out Bluetooth (opening AirPods
+        /// drops them into call mode) and Continuity iPhones (opening one wakes the phone); in turn keeps them.
+        /// `matching` keeps those whose name contains it, ignoring case.
         public func mics(from all: [Mic], matching filter: String? = nil) -> [Mic] {
             all.filter { mic in
                 (self == .inTurn || (mic.kind != .bluetooth && mic.kind != .continuity))

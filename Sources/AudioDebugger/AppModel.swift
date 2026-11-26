@@ -87,10 +87,14 @@ final class AppModel {
     var showAbout = false
     /// The folder of the sample just saved (Sample.swift), shown for a few seconds.
     var sampleSaved: String?
+    /// Story 013: the last sample saved this session, kept for Share and Reveal after the notice fades.
+    var lastSample: URL?
     /// Stories 017/018 (Mac): the capture set being taken, what it is doing, and the folder of the last one saved.
     var captureRun: CaptureRun?
     var captureSaved: String?
     var captureTask: Task<Void, Never>?
+    /// The capture picker (M), while it is up: which mics, at once or in turn, how long.
+    var capturePlan: CapturePlan?
     /// Story 019 (Mac): the capture set open for comparison, its folder name, the row playing and the one before.
     var comparison: Comparison?
     var comparisonName: String?

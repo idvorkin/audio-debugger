@@ -89,7 +89,7 @@ screenshots mic="MacBook": app _quit-app
     dir="$HOME/tmp/agent/audio-debugger/screens"
     rm -rf "$dir"; mkdir -p "$dir"
     open -g "{{app}}" --args --screenshots "$dir" --mic "{{mic}}"
-    for shot in live replay compare; do
+    for shot in live replay compare picker; do
       for _ in $(seq 60); do [ -f "$dir/$shot.wid" ] && break; sleep 0.5; done
       [ -f "$dir/$shot.wid" ] || { echo "no $shot shot"; exit 1; }
       screencapture -o -x -l "$(cat "$dir/$shot.wid")" "docs/$shot.png" || exit 1

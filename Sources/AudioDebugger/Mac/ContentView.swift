@@ -20,9 +20,9 @@ struct ContentView: View {
                 Button("Reset peaks  C") { model.resetReadings() }
                 Button("Report a bug  ⌘I") { model.showBugReport = true }
                 Button("Keys  ?") { model.showKeys = true }
-                Button("Capture every mic  M") { model.captureSet(.together) }
-                    .help("Record every mic (not Bluetooth or iPhone) for 10 s into one capture set; ⇧M: each in turn")
-                    .disabled(model.captureRun != nil)
+                Button("Capture mics  M") { model.captureSet(.together) }
+                    .help("Choose mics to record into one capture set, at once or in turn (⇧M)")
+                    .disabled(model.captureRun != nil || model.capturePlan != nil)
                 if let saved = model.bugSaved {
                     Text("Saved report \(saved)").foregroundStyle(green).font(.callout)
                 }
@@ -49,7 +49,10 @@ struct ContentView: View {
             if let error = model.micError {
                 Text(error).foregroundStyle(red).font(.callout)
             }
-            if model.comparison != nil {
+            if model.capturePlan != nil {
+                CapturePicker()  // stories 017/018: M's picker, until Return or Esc
+                Spacer(minLength: 0)  // keeps the window's rows at the top while the panels are away
+            } else if model.comparison != nil {
                 CompareView()  // story 019: a capture set takes the panels' place until Esc
             } else {
                 HStack(spacing: 8) {

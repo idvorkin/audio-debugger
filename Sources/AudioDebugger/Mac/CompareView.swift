@@ -76,12 +76,6 @@ extension AppModel {
         guard let other = previousRow else { return }
         playRow(other)
     }
-
-    /// ⌘R: the set's folder in Finder.
-    func revealComparison() {
-        guard let folder = comparisonFolder else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([folder])
-    }
 }
 
 private let rowColors: [Color] = [
@@ -104,8 +98,10 @@ struct CompareView: View {
                         "\(c.set.mode == .together ? "at once" : "in turn") · \(c.rows.count) mics · best first"
                     ).foregroundStyle(.secondary)
                     Spacer()
-                    Text("1–9 listen (raw)   ⇥ A/B   ⌘O open   ⌘R reveal   Esc close").foregroundStyle(.secondary)
-                        .font(.callout)
+                    Text("1–9 listen (raw)   ⇥ A/B   ⌘O open   ⌘R reveal   ⇧⌘S share   Esc close").foregroundStyle(
+                        .secondary
+                    )
+                    .font(.callout)
                 }
                 RowTable(comparison: c)
                 Plot(title: "Waveforms, lined up in time") { AlignedWaveforms(comparison: c) }
