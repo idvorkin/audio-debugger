@@ -42,6 +42,9 @@ enum Mics {
         case kAudioDeviceTransportTypeBuiltIn: .builtIn
         case kAudioDeviceTransportTypeUSB: .usb
         case kAudioDeviceTransportTypeBluetooth, kAudioDeviceTransportTypeBluetoothLE: .bluetooth
+        // An iPhone's mic over Continuity: "ccwd" (cable) and "ccwl" (wireless), as Core Audio reports them.
+        case kAudioDeviceTransportTypeContinuityCaptureWired, kAudioDeviceTransportTypeContinuityCaptureWireless:
+            .continuity
         default: .other
         }
     }
