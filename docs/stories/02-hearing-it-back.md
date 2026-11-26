@@ -155,5 +155,18 @@ without changing the Mac's sound settings.
   - Then the replay plays on the system default, the output line says the chosen output is missing, and it is used
     again once plugged back in
 
-**Notes**: Mac first. The iPhone and iPad (speaker or receiver, the system route picker, and a Bluetooth headset's
-input tying its output to the same headset) are ad-0er's follow-up.
+- Scenario: On the iPhone (ad-8ev)
+  - Given AirPods are connected and the built-in mic is open
+  - When I tap the route button on the output row and pick the AirPods
+  - Then replay plays in the AirPods (full quality: their mic stays closed) and the row names them
+- Scenario: A headset mic ties the output (ad-8ev)
+  - Given the AirPods' mic is the open mic
+  - When I look at the output row
+  - Then it names the AirPods in amber and says the output is tied to the headset's mic
+
+**Notes**: On the iPhone and iPad (ad-8ev) the output is the audio session's route, so the row under the input line
+shows it and offers the system's own route picker (`AVRoutePickerView`): AirPods, AirPlay, a wired headset, the
+speaker. There is no per-app device as on the Mac, so O does nothing there. With nothing plugged in, replay plays on
+the speaker (`.defaultToSpeaker`); the earpiece is not offered, as switching to it would mean changing the session's
+category under a running capture. iOS: built in 01132b3, `just ios-build` passes; the simulator selftest could not
+run (other sessions' simulators were booted); on the phone: to verify by Igor.
