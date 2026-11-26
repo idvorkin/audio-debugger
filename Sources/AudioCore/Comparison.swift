@@ -13,6 +13,23 @@ public struct Comparison: Sendable {
         public let spectrum: [SpectrumPoint]
         /// Why the stream has no audio: the manifest's error, or the WAV failing to load.
         public let problem: String?
+        /// 600 min/max buckets of the samples, and their peak: worked out once, for drawing.
+        public let envelope: [(min: Float, max: Float)]
+        public let peak: Float
+
+        public init(
+            stream: CaptureSet.Stream, samples: [Float], rate: Double, reading: MicScore.Reading?,
+            spectrum: [SpectrumPoint], problem: String?
+        ) {
+            self.stream = stream
+            self.samples = samples
+            self.rate = rate
+            self.reading = reading
+            self.spectrum = spectrum
+            self.problem = problem
+            envelope = AudioCore.envelope(samples, buckets: 600)
+            peak = AudioCore.peak(samples[...])
+        }
 
         public var seconds: Double { rate > 0 ? Double(samples.count) / rate : 0 }
         public var offset: Double { stream.offset ?? 0 }

@@ -106,11 +106,12 @@ public struct CaptureSet: Codable, Equatable, Sendable {
         return try decoder.decode(CaptureSet.self, from: data)
     }
 
-    /// Each stream's start (its newest buffer's host time less its length), as seconds after the earliest.
+    /// Each stream's start (its newest buffer's host time less its length), as seconds after the earliest. A stream
+    /// with no audio (length 0, or not a number) has no start: its offset is 0 and it never sets the earliest.
     public static func offsets(ends: [Double], lengths: [Double]) -> [Double] {
-        let starts = zip(ends, lengths).map { $0 - $1 }
-        guard let first = starts.min() else { return [] }
-        return starts.map { $0 - first }
+        let starts = zip(ends, lengths).map { end, length in length > 0 ? end - length : nil }
+        guard let first = starts.compactMap({ $0 }).min() else { return starts.map { _ in 0 } }
+        return starts.map { $0.map { $0 - first } ?? 0 }
     }
 
     /// "2-usbaudio1-0": the row number and the mic's name, lower case, runs of anything else as one dash.

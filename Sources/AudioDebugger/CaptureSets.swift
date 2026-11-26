@@ -63,7 +63,7 @@ extension AppModel {
                     stream.offset = (offsets[i] * 1000).rounded() / 1000
                     stream.started = take.end - Double(take.samples.count) / take.rate
                 } else if stream.error == nil {
-                    stream.error = "stopped before this mic's turn"
+                    stream.error = "opened but sent no audio"
                 }
                 set.streams.append(stream)
             }

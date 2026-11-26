@@ -164,25 +164,22 @@ private struct AlignedWaveforms: View {
     var body: some View {
         let span = max(comparison.span, 0.001)
         let rows = comparison.rows.enumerated().filter { !$0.element.samples.isEmpty }
-        let loudest = rows.map { peak($0.element.samples[...]) }.max() ?? 1
-        let gain = 1 / max(loudest, 1e-4)
-        let envelopes = rows.map { row in
-            envelope(row.element.samples, buckets: 600).map { (min: $0.min * gain, max: $0.max * gain) }
-        }
+        let loudest = rows.map(\.element.peak).max() ?? 1
+        let gain = CGFloat(1 / max(loudest, 1e-4))
         let playing = model.playingRow
         let at = model.seconds(model.position)
         Canvas { ctx, size in
             let laneHeight = size.height / CGFloat(max(1, rows.count))
             for (lane, (i, row)) in rows.enumerated() {
-                let env = envelopes[lane]
+                let env = row.envelope
                 let x0 = CGFloat(row.offset / span) * size.width
                 let w = CGFloat(row.seconds / span) * size.width
                 let mid = laneHeight * (CGFloat(lane) + 0.5)
                 var path = Path()
                 for (k, b) in env.enumerated() {
                     let x = x0 + w * CGFloat(k) / CGFloat(env.count)
-                    path.move(to: CGPoint(x: x, y: mid - CGFloat(b.max) * laneHeight / 2))
-                    path.addLine(to: CGPoint(x: x, y: mid - CGFloat(b.min) * laneHeight / 2))
+                    path.move(to: CGPoint(x: x, y: mid - CGFloat(b.max) * gain * laneHeight / 2))
+                    path.addLine(to: CGPoint(x: x, y: mid - CGFloat(b.min) * gain * laneHeight / 2))
                 }
                 ctx.stroke(path, with: .color(rowColor(i)), lineWidth: 1)
                 ctx.draw(

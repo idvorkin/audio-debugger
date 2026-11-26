@@ -108,6 +108,15 @@ func micScoreMatchesGrabber(_ name: String) throws {
     #expect(offsets.map { ($0 * 1000).rounded() } == [15, 0, 15])
 }
 
+@Test func aMicWithNoAudioDoesNotSetTheEarliestStart() {
+    // Story 017, a mic that fails: its take has end 0 and no samples (length 0, or 0/0 with no rate). The others'
+    // offsets stay milliseconds apart, not their host times since boot.
+    let offsets = CaptureSet.offsets(
+        ends: [123_466.789, 0, 123_466.800, 0], lengths: [10, 0, 10, Double.nan])
+    #expect(offsets.map { ($0 * 1000).rounded() } == [0, 0, 11, 0])
+    #expect(CaptureSet.offsets(ends: [0], lengths: [0]) == [0])
+}
+
 @Test func streamFileNamesAreSlugs() {
     #expect(CaptureSet.fileStem(index: 2, name: "USBAudio1.0") == "2-usbaudio1-0")
     #expect(CaptureSet.fileStem(index: 1, name: "MacBook Pro Microphone") == "1-macbook-pro-microphone")
