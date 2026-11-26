@@ -2,12 +2,12 @@
 
 ## 003 — Replay the last 20, 10 or 5 seconds
 
-**Summary**: The last 20 s are always kept; one key plays the last 20, 10 or 5 s, with the clip's waveform, a
-playhead and a scrubber.
+**Summary**: The last 20 s are always kept; one key plays the last 5, 10 or 20 s (R, T, Y: left to right on the
+keyboard, shortest first), with the clip's waveform, a playhead and a scrubber.
 **Status**: Done (06c69ad, cb62d8a plays at once and survives an output change; host tests for the ring and
-transport; selftest: open, pause holds, seek; by ear: ad-dsc)
+transport; selftest: open, pause holds, seek; by ear: ad-dsc). Keys R / T / Y for 5 / 10 / 20 s: planned (ad-49f).
 **Why**: "Can I always replay the last 20 seconds?"; "replay should have 20, 10, 5 s and bring up a playback bar
-and waveform".
+and waveform"; "obvious replay keys" (Igor, 2026-11-25): R was 20 s and F 5 s, which nobody could guess.
 
 **Use Case**: As Igor, I want to hear what I just said without having pressed record, so that I know how I sound.
 
@@ -15,11 +15,15 @@ and waveform".
 
 - Scenario: Replay without recording
   - Given the app has been open for a minute
-  - When I press R
+  - When I press Y
   - Then the last 20 s play in both ears, and the replay panel shows their waveform with a moving playhead
+- Scenario: Shortest first
+  - Given the app has been open for a minute
+  - When I press R, then T
+  - Then R plays the last 5 s and T the last 10 s; F, the old key, still plays 5 s
 - Scenario: Young buffer
   - Given the app opened 4 s ago
-  - When I press R
+  - When I press Y
   - Then the 4 s captured so far play
 
 ## 004 — Pause, replay and scrub

@@ -24,6 +24,12 @@ enum Screenshots {
             mark("replay", window, dir)
             await wait(2)
             model.closeReplay()
+            // Story 016: the key sheet, its own window attached to the main one.
+            model.showKeys = true
+            await wait(1.5)
+            mark("keys", window.attachedSheet ?? window, dir)
+            await wait(2)
+            model.showKeys = false
             Log.selftest.info("screenshots done")
             quitApp()
         }

@@ -19,6 +19,7 @@ struct PhoneView: View {
                 Menu {
                     Button("Report a problem", systemImage: "ladybug") { reporter.open(from: .button) }
                     Button("What's new", systemImage: "sparkles") { model.showWhatsNew = true }
+                    Button("Keys", systemImage: "keyboard") { model.showKeys = true }
                     Button("About", systemImage: "info.circle") { showAbout = true }
                 } label: {
                     Image(systemName: "ellipsis.circle").font(.title2)
@@ -26,7 +27,7 @@ struct PhoneView: View {
             }
             InputLine()
             HStack {
-                ForEach([20, 10, 5], id: \.self) { s in
+                ForEach([5, 10, 20], id: \.self) { s in
                     Button("▶ \(s)s") { model.replay(seconds: s) }.buttonStyle(.borderedProminent)
                 }
                 Button("Reset peaks") { model.resetReadings() }.buttonStyle(.bordered)
@@ -55,6 +56,9 @@ struct PhoneView: View {
                     .toolbar { Button("Done") { model.showWhatsNew = false } }
             }
         }
+        .sheet(isPresented: Binding(get: { model.showKeys }, set: { model.showKeys = $0 })) {
+            ScrollView { KeySheet().environment(model) }
+        }
         .sheet(isPresented: $showAbout) {
             NavigationStack {
                 Form { BugKitAboutLink() }
@@ -62,7 +66,8 @@ struct PhoneView: View {
             }
         }
         // An iPad's hardware keyboard: the Mac's bare keys (Keys.swift). Sheets take focus, so a bug note's typing
-        // never reaches the transport.
+        // never reaches the transport. The keys the app's keyboard commands own (`KeyCommands`, listed when ⌘ is
+        // held) are theirs: handling them here too would fire each twice, and N or B would toggle back.
         .focusable()
         .focused($focused)
         .focusEffectDisabled()
@@ -76,6 +81,8 @@ struct PhoneView: View {
             case .rightArrow: key = .right
             default: key = .character(press.characters)
             }
+            if case .character(let c) = key, KeyCommands.owned.contains(c.lowercased()) { return .ignored }
+            if key == .space || key == .left || key == .right { return .ignored }
             return model.press(key, shift: press.modifiers.contains(.shift)) ? .handled : .ignored
         }
         .onAppear { focused = true }

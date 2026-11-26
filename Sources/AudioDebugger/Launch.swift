@@ -22,8 +22,15 @@ enum Launch {
         return URL(fileURLWithPath: args[i + 1], isDirectory: true)
     }
 
+    /// `--no-mic`: never ask for or open a mic, for a simulator screenshot while the Mac's input is AirPods (a
+    /// simulator's mic is the Mac's default input, and opening AirPods' drops them into call mode).
+    static var noMic: Bool { CommandLine.arguments.contains("--no-mic") }
+
+    /// `--keys`: open with the key sheet up (story 016), for a screenshot.
+    static var showKeys: Bool { CommandLine.arguments.contains("--keys") }
+
     /// A scripted run: its logs and reports go in their own folder, so the listener never files them.
-    static var scripted: Bool { selfTestSeconds != nil || screenshotDir != nil }
+    static var scripted: Bool { selfTestSeconds != nil || screenshotDir != nil || noMic }
 }
 
 /// `just selftest`: drive the replay flow muted and log what happened, then quit. Verified from the log.
@@ -38,7 +45,7 @@ enum SelfTest {
             Log.selftest.info(
                 "mic \(model.mic?.name ?? "none", privacy: .public); mics \(model.mics.count, privacy: .public); error \(model.micError ?? "none", privacy: .public)"
             )
-            model.replay(seconds: 5)
+            _ = model.press(.character("r"), shift: false)  // story 003: R is the last 5 s
             await wait(2)
             Log.selftest.info(
                 "replay open \(model.replayOpen, privacy: .public) length \(model.seconds(model.replayLength), format: .fixed(precision: 2), privacy: .public)s position \(model.seconds(model.position), format: .fixed(precision: 2), privacy: .public)s playing \(model.playing, privacy: .public) busy \(model.processingBusy, privacy: .public)"
@@ -66,6 +73,20 @@ enum SelfTest {
             )
             model.jump(seconds: 1)
             model.closeReplay()
+            // Story 016: ? opens the key sheet, keys behind it do nothing, Esc closes it; Y is the last 20 s.
+            _ = model.press(.character("?"), shift: true)
+            let up = model.showKeys
+            _ = model.press(.character("y"), shift: false)
+            let blocked = !model.replayOpen
+            _ = model.press(.escape, shift: false)
+            Log.selftest.info(
+                "key sheet: up \(up, privacy: .public), Y blocked \(blocked, privacy: .public), closed by Esc \(!model.showKeys, privacy: .public)"
+            )
+            _ = model.press(.character("y"), shift: false)
+            await wait(0.5)
+            Log.selftest.info(
+                "Y: replay \(model.seconds(model.replayLength), format: .fixed(precision: 2), privacy: .public)s")
+            model.cancel()
             model.bugNote = "selftest report"
             model.saveBug()
             await wait(1.5)

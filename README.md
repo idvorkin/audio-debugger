@@ -30,7 +30,8 @@ A native macOS app for finding out how a microphone actually sounds: see the sig
 
 ![Replay panel: the clip's waveform with a playhead, transport, scrubber and processing toggles](docs/replay.png)
 
-The last 20 seconds are always kept. **R / T / F** replay the last 20 / 10 / 5 s (Space with nothing open).
+The last 20 seconds are always kept. **R / T / Y** replay the last 5 / 10 / 20 s (Space with nothing open
+replays 20 s). **?** lists every key; on an iPad, holding ⌘ does too, and ⌘. closes the replay.
 
 - **Space** pauses and resumes, **A** starts over, **← / →** jump a second (⇧ for five); click or drag the
   waveform, or use the scrubber.
