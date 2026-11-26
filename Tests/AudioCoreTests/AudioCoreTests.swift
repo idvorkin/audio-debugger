@@ -49,6 +49,59 @@ private func noise(_ count: Int, amplitude: Float, seed: UInt64 = 1) -> [Float] 
     #expect(f.db == -40)
 }
 
+// The live readout over 20 s: floor from the gaps, speech from the loud frames, the separation between them.
+@Test func noiseFloorAlsoReadsTheSpeech() {
+    var f = NoiseFloor(window: 100)
+    #expect(f.summary == nil)
+    for k in 0..<100 { f.update(rmsDB: k % 2 == 0 ? -62 : -17) }
+    #expect(f.summary?.floorDB == -62)
+    #expect(f.summary?.speechDB == -17)
+    #expect(f.summary?.separationDB == 45)
+    #expect(f.summary?.separation == .good)
+}
+
+@Test func separationBands() {
+    #expect(Separation(db: 3) == .noSpeech)  // a steady room and nobody talking
+    #expect(Separation(db: 10) == .poor)
+    #expect(Separation(db: 20) == .ok)
+    #expect(Separation(db: 45) == .good)
+}
+
+@Test func levelSummaryIgnoresDigitalSilence() {
+    #expect(LevelSummary(levelsDB: [-200, -200]) == nil)
+    #expect(LevelSummary(levelsDB: [-200, -40])?.floorDB == -40)
+}
+
+// A saved sample's sidecar: 50 ms frames of quiet noise with a loud tone in a fifth of them.
+@Test func clipSummaryOfNoiseAndSpeech() {
+    let rate: Float = 16_000, frame = 800
+    var x = noise(frame * 100, amplitude: 0.001)  // uniform ±0.001: RMS 0.00058, about -65 dBFS
+    for f in stride(from: 0, to: 100, by: 5) {
+        let tone = sine(300, amplitude: 0.2, count: frame, rate: rate)  // RMS 0.141, about -17 dBFS
+        for i in 0..<frame { x[f * frame + i] += tone[i] }
+    }
+    let levels = frameLevelsDB(x, sampleRate: Double(rate))
+    #expect(levels.count == 100)
+    let s = LevelSummary(levelsDB: levels)
+    #expect(s.map { abs($0.floorDB - -64.8) < 1 } == true)
+    #expect(s.map { abs($0.speechDB - -17) < 0.5 } == true)
+    #expect(s?.separation == .good)
+    #expect(clippedSamples([0.5, 1, -1, 0.9991, 0.998]) == 3)
+}
+
+// The sidecar's numbers as JSON prints them: an AirPods clip of 430,560 samples at 24 kHz is 17.94 s, which a
+// Double writes as 17.940000000000001 (seen on the Mac, 2026-11-24).
+@Test func sidecarNumbersPrintShort() throws {
+    func json(_ value: Double, _ places: Int) throws -> String {
+        let data = try JSONSerialization.data(withJSONObject: ["v": jsonNumber(value, places: places)])
+        return String(decoding: data, as: UTF8.self)
+    }
+    #expect(try json(430_560 / 24_000, 2) == #"{"v":17.94}"#)
+    #expect(try json(Double(Float(-69.4)), 1) == #"{"v":-69.4}"#)
+    #expect(try json(20, 2) == #"{"v":20}"#)
+    #expect(try json(-0.04, 1) == #"{"v":0}"#)
+}
+
 @Test func noteNames() {
     #expect(noteName(440) == "A4 +0¢")
     #expect(noteName(261.63) == "C4 +0¢")

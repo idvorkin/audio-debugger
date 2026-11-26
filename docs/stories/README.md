@@ -29,7 +29,9 @@ Mike Cohn use case plus Gherkin acceptance criteria. Each story: **Summary**, **
 | A | Replay from the start |
 | ← / → (⇧ for 5 s) | Jump back / forward 1 s |
 | N / B | Noise reduction / voice boost on and off |
-| C | Reset held peaks, clip count and noise floor |
+| C | Reset held peaks, clip count and the noise readout |
+| S | Save the last 20 s as a WAV with its measurements |
+| H | Open the noise explainer (what floor, speech and separation mean) |
 | Esc | Close the replay |
 | ⌘I | Report a bug |
 | ⇧⌘N | What's new |

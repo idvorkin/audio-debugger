@@ -74,6 +74,17 @@ enum SelfTest {
             Log.selftest.info(
                 "bug report \(model.bugSaved ?? "none", privacy: .public): \(files.sorted().joined(separator: " "), privacy: .public)"
             )
+            let levels = model.levels
+            Log.selftest.info(
+                "noise readout: floor \(levels?.floorDB ?? -200, format: .fixed(precision: 1), privacy: .public) speech \(levels?.speechDB ?? -200, format: .fixed(precision: 1), privacy: .public) separation \(levels?.separation.rawValue ?? "none", privacy: .public)"
+            )
+            model.saveSample()
+            await wait(1.5)
+            let sample = model.sampleSaved.map { SessionLog.root.appendingPathComponent("samples/\($0)") }
+            let sampleFiles = sample.flatMap { try? FileManager.default.contentsOfDirectory(atPath: $0.path) } ?? []
+            Log.selftest.info(
+                "sample \(model.sampleSaved ?? "none", privacy: .public): \(sampleFiles.sorted().joined(separator: " "), privacy: .public)"
+            )
             Log.selftest.info("selftest done")
             quitApp()
         }

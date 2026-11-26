@@ -71,6 +71,8 @@ extension AppModel {
             "mics": .array(mics.map { .string($0.name) }),
             "rms_db": .double(Double(rmsDB)), "peak_db": .double(Double(peakDB)),
             "noise_floor_db": .double(Double(noiseFloorDB ?? -200)), "clips": .int(clips),
+            "speech_db": .double(Double(levels?.speechDB ?? -200)),
+            "separation_db": .double(Double(levels?.separationDB ?? 0)),
             "noise_reduction": .bool(processing.noiseReduction), "voice_boost": .bool(processing.voiceBoost),
         ]
         if let micError { c["mic_error"] = .string(micError) }

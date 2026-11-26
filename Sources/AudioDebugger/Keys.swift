@@ -26,6 +26,8 @@ extension AppModel {
             case "n": processing.noiseReduction.toggle()
             case "b": processing.voiceBoost.toggle()
             case "c": resetReadings()
+            case "s": saveSample()
+            case "h": openNoiseGuide()
             default: return false
             }
         }

@@ -30,9 +30,13 @@ Bluetooth mics carry a tooltip saying so. Core Audio's private `CADefaultDeviceA
 
 ## 002 — Live readings
 
-**Summary**: Waveform, log-frequency spectrum with peak hold, 0–8 kHz spectrogram, RMS/peak meter, noise floor,
-dominant frequency, pitch as a note, clip count, and a gain hint.
-**Status**: Done (06c69ad; host tests for levels, noise floor, spectrum calibration, pitch, spectrogram; selftest log)
+**Summary**: Waveform, log-frequency spectrum with peak hold, 0–8 kHz spectrogram, RMS/peak meter, dominant
+frequency, pitch as a note, clip count, a gain hint, and a noise readout: floor, speech level and their separation
+with a good / ok / poor band, H for what they mean.
+**Status**: Done (06c69ad; host tests for levels, noise floor, spectrum calibration, pitch, spectrogram; selftest log).
+Noise readout and H: in progress (9680129; host tests run on Linux, the Mac app cross-compiled, iOS type-checked;
+on the Mac, 2026-11-24: just test, lint, and the selftest on the OBSBOT mic logged the readout, floor -70, speech
+-67, "no speech heard" in a quiet room; the band moving as someone talks and stops, and H opening, owed to a run)
 
 **Use Case**: As Igor, I want to see my mic's level, noise and tone at a glance, so that I can set the gain and
 spot hum or hiss.
@@ -52,9 +56,25 @@ spot hum or hiss.
   - When I look at the status line
   - Then pitch reads A2
 
+- Scenario: How much background noise is there
+  - Given I talked for the last 20 s over a room whose gaps read -62 dBFS and my voice's loud frames -17 dBFS
+  - When I look at the noise readout
+  - Then it says noise floor -62 dB, speech -17 dB, speech − floor 45 dB GOOD
+- Scenario: Nobody is talking
+  - Given the last 20 s were a steady room and no speech
+  - When I look at the noise readout
+  - Then the separation says "no speech heard", not POOR
+- Scenario: What do these mean
+  - Given the noise readout is on screen
+  - When I press H
+  - Then the noise explainer (docs/noise.html, bundled in the Mac app) opens in the browser
+
 **Notes**: Spectrum is amplitude dBFS (a full-scale sine reads 0 dB). Pitch: FFT autocorrelation, the strongest local
-maximum over 60–1000 Hz, gate -60 dBFS. Noise floor: the 10th percentile of the
-last 5 s of RMS readings, digital silence ignored (a running minimum latched onto start-up buffers at -110 dB).
+maximum over 60–1000 Hz, gate -60 dBFS. Noise readout (`AudioCore/NoiseMetrics.swift`): the last 20 s of RMS
+readings (the replay's span, 600 at 30 Hz), digital silence ignored; floor = 10th percentile, speech = 95th,
+separation = speech − floor, banded GOOD ≥ 30 dB, OK ≥ 15, POOR ≥ 6, under 6 "no speech heard" (a rule of thumb,
+explained in docs/noise.html). The floor's window was 5 s until the readout (a running minimum before that latched
+onto start-up buffers at -110 dB). What has been verified for the noise readout is in the Status line.
 The spectrogram's axis is 0–8 kHz whatever the rate; what a slower input cannot carry stays black (story 015).
 
 ## 015 — See the input's rate and why the top is empty

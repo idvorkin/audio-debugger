@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading Background Noise</title>
+<meta name="description" content="How to read a microphone: visualizing sound, where the voice sits, voice activity detection, and what codecs do to it. ELI5 and regular explanations, mapped to Audio Debugger.">
+<style>
+  :root {
+    --bg: #f6f7f8; --panel: #ffffff; --panel-2: #eef0f2; --ink: #1f2429; --muted: #5b6470; --line: #dde2e7;
+    --accent: #2f6fd6; --good: #1f8a4c; --ok: #a86b00; --poor: #c23b2a; --voice: #6b4fd6; --noise: #8a939c;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171a; --panel: #1b1f24; --panel-2: #232930; --ink: #e6e8eb; --muted: #9aa3ad; --line: #2c333a;
+      --accent: #6ea4ff; --good: #4cc38a; --ok: #e0b152; --poor: #f07862; --voice: #a58cff; --noise: #7d8791;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171a; --panel: #1b1f24; --panel-2: #232930; --ink: #e6e8eb; --muted: #9aa3ad; --line: #2c333a;
+    --accent: #6ea4ff; --good: #4cc38a; --ok: #e0b152; --poor: #f07862; --voice: #a58cff; --noise: #7d8791;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 1.0625rem/1.6 var(--sans); }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 0 16px 4rem; }
+  header { padding: 2.5rem 0 0.5rem; }
+  h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.15; margin: 0 0 0.6rem; }
+  h2 { font-size: 1.4rem; margin: 3rem 0 0.5rem; line-height: 1.25; }
+  h3 { font-size: 1.05rem; margin: 1.8rem 0 0.4rem; }
+  p, li { text-wrap: pretty; }
+  a { color: var(--accent); }
+  code, .num { font-family: var(--mono); font-size: 0.92em; }
+  .dek { color: var(--muted); font-size: 1.12rem; margin: 0 0 1rem; }
+  nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem 1rem; }
+  nav.toc ol { margin: 0; padding-left: 1.3rem; }
+  .bar { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 0.6rem 0; border-bottom: 1px solid var(--line);
+         display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+  .bar span { color: var(--muted); font-size: 0.9rem; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 0.85rem; border: 0; background: transparent; color: var(--ink);
+                padding: 0.25rem 0.8rem; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  section > .head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; }
+  section[data-mode="eli5"] .regular, section[data-mode="regular"] .eli5 { display: none; }
+  .eli5 { background: var(--panel); border-left: 4px solid var(--voice); border-radius: 0 10px 10px 0; padding: 0.4rem 1rem; }
+  figure { margin: 1.2rem 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 0.4rem; }
+  svg text { font-family: var(--sans); fill: var(--ink); }
+  svg .muted { fill: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.95rem; margin: 1rem 0; }
+  th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+  .table-scroll { overflow-x: auto; }
+  .good { color: var(--good); font-weight: 600; } .ok { color: var(--ok); font-weight: 600; } .poor { color: var(--poor); font-weight: 600; }
+  .note { color: var(--muted); font-size: 0.92rem; }
+  footer { margin-top: 3rem; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Reading background noise</h1>
+  <p class="dek">What Audio Debugger's numbers and pictures mean, how loud a room can be before speech recognition
+  struggles, and what voice detection and Bluetooth do to the sound on its way in.</p>
+  <nav class="toc" aria-label="Sections">
+    <ol>
+      <li><a href="#visualize">Visualizing sound</a>: waveform, meters, spectrum and spectrogram</li>
+      <li><a href="#voice">Where the voice sits</a>: frequencies, noise floor and how much separation is enough</li>
+      <li><a href="#vad">Voice activity detection</a>: deciding when someone is talking, and why noise fools it</li>
+      <li><a href="#codecs">Codecs and the mic path</a>: Bluetooth vs USB, and what noise suppression costs</li>
+    </ol>
+  </nav>
+</header>
+
+<div class="bar" role="group" aria-label="Explanation level for every section">
+  <span>Every section:</span>
+  <div class="seg" data-all>
+    <button type="button" data-set="eli5">ELI5</button>
+    <button type="button" data-set="regular">Regular</button>
+  </div>
+</div>
+
+<!-- ============================================================ 1 -->
+<section id="visualize" data-mode="regular">
+  <div class="head">
+    <h2>1. Visualizing sound</h2>
+    <div class="seg"><button type="button" data-set="eli5">ELI5</button><button type="button" data-set="regular">Regular</button></div>
+  </div>
+
+  <div class="eli5">
+    <p>A microphone turns air wiggles into a long list of numbers, thousands every second. Each picture in the app is
+    a different way of looking at that list.</p>
+    <p>The <b>waveform</b> is the wiggle itself, like a seismograph. The <b>meter</b> is how big the wiggles are right
+    now. The <b>spectrum</b> sorts the sound by pitch, low notes on the left and high on the right, like a piano. The
+    <b>spectrogram</b> is the spectrum drawn over and over as time moves, so you can see a hum as a straight line and
+    your voice as wavy stripes.</p>
+    <p>Loudness is measured in <b>dB</b> going down from zero. Zero is the loudest the mic can record; -20 is quieter;
+    -60 is very quiet. Every 6 dB lower is half as big a wiggle.</p>
+  </div>
+
+  <div class="regular">
+    <p>The mic delivers samples: numbers between -1 and +1, 48,000 a second on a Mac, 16,000 in many speech systems.
+    Every reading in the app is in <b>dBFS</b>, decibels relative to full scale: 0 dBFS is the largest value the
+    converter can represent, and everything real is negative. 20&nbsp;dB is a factor of 10 in amplitude; 6&nbsp;dB is
+    a factor of 2.</p>
+
+    <h3>Waveform</h3>
+    <p>Samples against time. Audio Debugger scales it to its own peak so a quiet mic still fills the panel, which
+    means its height says nothing about level: read the <code>±</code> scale in its corner, or the meter.</p>
+
+    <h3>RMS and peak</h3>
+    <p><b>Peak</b> is the largest sample in a window; it tells you how close you are to clipping. <b>RMS</b> (root mean
+    square) averages the energy over the window; it tracks loudness. Speech peaks sit 12 to 20&nbsp;dB above its RMS,
+    so a voice at -30 RMS can peak near -12. The meter shows both (RMS green, peak blue, the held peak red) from
+    -60 to 0, with guides at -18 (a common speech target) and -6 (getting hot). Anything at or past full scale is
+    counted as clipped: that damage cannot be undone downstream.</p>
+
+    <h3>A-weighting vs flat</h3>
+    <p>Sound level meters often report dB(A), which turns low and very high frequencies down to roughly match how
+    hearing works at moderate levels: about -19&nbsp;dB at 100&nbsp;Hz and -30&nbsp;dB at 50&nbsp;Hz, nothing at
+    1&nbsp;kHz. Audio Debugger is <b>flat</b>: every frequency counts the same. So a fan's rumble or 60&nbsp;Hz hum
+    you barely hear can lift the flat noise floor by several dB. If the floor looks worse than the room sounds, check
+    the left end of the spectrum.</p>
+
+    <h3>Spectrum</h3>
+    <p>An FFT of the newest 4096 samples: level per frequency, on a log frequency axis (20&nbsp;Hz to half the sample
+    rate) so each octave gets equal width. The dashed amber line is a slowly decaying peak hold, which shows where
+    energy has been, not only where it is now.</p>
+
+    <h3>Spectrogram</h3>
+    <p>Spectra stacked over time: time runs left to right, frequency (0 to 8&nbsp;kHz) bottom to top, brightness is
+    level. It is the most useful single picture for noise, because different sources have different shapes:</p>
+    <div class="table-scroll"><table>
+      <tr><th>Source</th><th>Spectrum</th><th>Spectrogram</th></tr>
+      <tr><td>Mains hum</td><td>Spikes at 60&nbsp;Hz and its multiples (120, 180…; 50&nbsp;Hz in Europe)</td><td>Thin horizontal lines at the bottom that never stop</td></tr>
+      <tr><td>Fan, HVAC</td><td>A broad hump, strongest below 500&nbsp;Hz, sometimes a blade tone</td><td>A steady haze along the bottom, maybe one faint line</td></tr>
+      <tr><td>Hiss (mic or preamp)</td><td>Flat or rising toward the top</td><td>Even grain across the whole height</td></tr>
+      <tr><td>Treadmill, elliptical, bike motor</td><td>A tone or whine that moves with speed, plus rumble</td><td>Lines that drift up and down with your pace</td></tr>
+      <tr><td>Clanks, weights, footfalls</td><td>Broadband for a moment</td><td>Short vertical stripes from bottom to top</td></tr>
+      <tr><td>Voice</td><td>Peaks at the pitch and its harmonics, energy up to 8&nbsp;kHz on consonants</td><td>Stacked wavy stripes (harmonics) with gaps between words</td></tr>
+    </table></div>
+    <p>Steady sources (hum, fans) are the easy kind: they are always there, so the gaps between words measure them,
+    and noise reduction can learn and subtract them. Moving and impulsive sources (other voices, clanks) are hard for
+    both.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section id="voice" data-mode="regular">
+  <div class="head">
+    <h2>2. Where the voice sits, and how loud the room is</h2>
+    <div class="seg"><button type="button" data-set="eli5">ELI5</button><button type="button" data-set="regular">Regular</button></div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 640 200" role="img" aria-label="Frequency map from 20 Hz to 16 kHz showing where voice parts, noise sources and codec bandwidths sit">
+      <g id="freqmap"></g>
+    </svg>
+    <figcaption>Log frequency axis. Voice parts in purple, common noise in grey, the bandwidth each mic path keeps
+    as bars below.</figcaption>
+  </figure>
+
+  <div class="eli5">
+    <p>Your voice has a low part and a high part. The low part is the hum of your vocal cords, the note you sing. The
+    high part is the hiss of letters like <i>s</i>, <i>f</i> and <i>t</i>, and it is what lets you tell "sip" from
+    "ship". Speech recognizers need both.</p>
+    <p>To know if a room is too noisy, listen to it in two places: the quiet moments between words (that is the
+    <b>noise floor</b>, the room's own sound) and the loud moments when you talk (the <b>speech level</b>). The bigger
+    the gap between them, the easier it is to understand you. A gap of 30&nbsp;dB or more is great. Under 15 is
+    hard work for a computer.</p>
+    <p>At the gym with a mic right by his mouth, Igor's quiet moments sat at -62 and his voice at -17: a 45&nbsp;dB
+    gap. The gym was loud, but the mic was so close that his voice was much louder.</p>
+  </div>
+
+  <div class="regular">
+    <h3>The voice's frequencies</h3>
+    <ul>
+      <li><b>Fundamental</b> (the pitch): about 85 to 180&nbsp;Hz for adult men, 165 to 255&nbsp;Hz for adult women.
+      It carries intonation and loudness but little of the words.</li>
+      <li><b>Formants</b>: resonances of the throat and mouth that shape vowels. The first sits around 300 to
+      900&nbsp;Hz, the second around 900 to 2500&nbsp;Hz; the first two largely decide which vowel you hear.</li>
+      <li><b>Consonants and sibilants</b>: bursts and hiss from about 2 to 8&nbsp;kHz and beyond. Quiet, short, and
+      where most of the difference between words lives.</li>
+    </ul>
+    <p>Sampling at 16&nbsp;kHz keeps everything up to 8&nbsp;kHz (half the rate, the Nyquist limit). That covers
+    the fundamental, formants and most of the sibilant energy, which is why most speech recognizers take 16&nbsp;kHz
+    input and why the app's spectrogram stops at 8&nbsp;kHz. The telephone band, 300 to 3400&nbsp;Hz, keeps the
+    vowels and drops much of the consonant detail: you can follow a phone call, but "f" and "s" blur.</p>
+
+    <h3>Noise floor, speech level, separation</h3>
+    <p>Audio Debugger cuts the signal into short frames (50&nbsp;ms for a saved sample; the live readout uses its
+    30-per-second readings of about 43&nbsp;ms each), takes the RMS of each, and sorts the last 20 seconds of them:</p>
+    <ul>
+      <li><b>Noise floor</b> = the 10th percentile. In normal speech at least a tenth of the time is pauses, so this
+      lands in the gaps and measures the room and the mic's own hiss.</li>
+      <li><b>Speech level</b> = the 95th percentile: the loud part of your voice.</li>
+      <li><b>Speech − floor</b> = the separation between them, in dB.</li>
+    </ul>
+    <p>This is a practical stand-in for SNR (signal-to-noise ratio), not the lab measurement. A textbook SNR compares
+    average speech power with average noise power; the 95th percentile sits above the speech average, so separation
+    reads several dB higher than a published SNR for the same recording. Keep that in mind when comparing with
+    papers.</p>
+
+    <figure>
+      <svg viewBox="0 0 640 170" role="img" aria-label="A dBFS scale from -80 to 0 with the gym example: floor -62, median -50, speech -17, a 45 dB separation, and the good, ok and poor bands">
+        <g id="ladder"></g>
+      </svg>
+      <figcaption>The gym example on the dBFS scale, and the bands the app uses for the separation.</figcaption>
+    </figure>
+
+    <h3>Worked example: a whisper mic at the gym</h3>
+    <p>A one-minute call from a gym, through a close-talking whisper mic, 16&nbsp;kHz mono, cut into 50&nbsp;ms
+    frames:</p>
+    <div class="table-scroll"><table>
+      <tr><th>Reading</th><th>Value</th><th>What it says</th></tr>
+      <tr><td>Noise floor (10th percentile)</td><td class="num">-62 dBFS</td><td>Between words the gym barely registers: the mic is close and faces the mouth.</td></tr>
+      <tr><td>Median frame</td><td class="num">-50 dBFS</td><td>Half the frames are quieter than this. It sits near the floor because a conversation is mostly listening and pauses.</td></tr>
+      <tr><td>Speech (95th percentile)</td><td class="num">-17 dBFS</td><td>A healthy level: loud enough to be clean, with room before clipping.</td></tr>
+      <tr><td>Speech − floor</td><td class="num">≈ 45 dB</td><td><span class="good">Good.</span> Speech is about 180 times the floor in amplitude.</td></tr>
+    </table></div>
+    <p>The lesson is distance, not the room. Level falls about 6&nbsp;dB each time you double the distance from a
+    source, so a mic 2&nbsp;cm from the mouth instead of 30&nbsp;cm gains over 20&nbsp;dB on the voice while the
+    gym, metres away, stays the same. That gap is bought before any processing. A laptop mic on the same treadmill
+    would see the same gym and a much quieter you.</p>
+
+    <h3>How much separation is enough</h3>
+    <div class="table-scroll"><table>
+      <tr><th>Speech − floor</th><th>Band in the app</th><th>What to expect</th></tr>
+      <tr><td class="num">30 dB or more</td><td class="good">GOOD</td><td>Recognizers and listeners have it easy.</td></tr>
+      <tr><td class="num">15 to 30 dB</td><td class="ok">OK</td><td>Fine for people. Recognizers make more mistakes on quiet words and names; move the mic closer if you can.</td></tr>
+      <tr><td class="num">6 to 15 dB</td><td class="poor">POOR</td><td>Listening is tiring and recognition errors are frequent. Fix the mic position or the room.</td></tr>
+      <tr><td class="num">under 6 dB</td><td>no speech heard</td><td>The loud frames are barely above the quiet ones: either nobody is talking, or the noise is as loud as the voice. The meter cannot tell which; replay and listen.</td></tr>
+    </table></div>
+    <p class="note">These bands are the app's rule of thumb for this percentile measure, not a published standard.
+    How much noise a recognizer tolerates varies too much by model and by kind of noise to quote one number: other
+    people talking hurts far more than a fan at the same level. Recognizers get worse as separation shrinks, so the
+    useful habit is comparing: the same sentence, two mics or two positions, and keep the bigger number.</p>
+
+    <h3>What noise reduction trades away</h3>
+    <p>The replay's noise reduction (N) learns the noise from the quietest fifth of the clip and turns down each
+    frequency that does not rise above it. On steady noise it works well and the floor drops. The costs: quiet
+    sounds that look like noise go too (word onsets, final consonants, breathy speech), the remaining noise can
+    warble ("musical noise"), and it cannot remove sounds that change, such as other voices. It also flatters the
+    meter: separation measured after noise reduction is bigger, but the words are not clearer by that much. Judge a
+    mic on its raw separation, then use noise reduction for listening.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section id="vad" data-mode="regular">
+  <div class="head">
+    <h2>3. Voice activity detection</h2>
+    <div class="seg"><button type="button" data-set="eli5">ELI5</button><button type="button" data-set="regular">Regular</button></div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 640 210" role="img" aria-label="Timeline of a level trace with an energy threshold, the detected speech regions, pre-roll, hangover and the endpoint after a long pause">
+      <g id="vadplot"></g>
+    </svg>
+    <figcaption>A level trace (grey) with an energy threshold. Pre-roll keeps the start of a word, hangover bridges
+    short gaps, and the endpoint fires after a long enough pause.</figcaption>
+  </figure>
+
+  <div class="eli5">
+    <p>Voice activity detection is the part of a voice app that decides "someone is talking now" and "they have
+    finished". It is like a friend who waits for you to stop talking before they answer.</p>
+    <p>If the friend answers too fast, they cut you off when you pause to think. If they wait too long, every answer
+    feels slow. And in a noisy room the friend gets confused: is that loud sound you, or the treadmill, or someone
+    across the room?</p>
+  </div>
+
+  <div class="regular">
+    <h3>Two kinds of detector</h3>
+    <p><b>Threshold (energy) VADs</b> call a frame speech when its level is some margin above the noise floor. They
+    are cheap and predictable, and they know nothing about voices: anything loud enough counts.</p>
+    <p><b>Model VADs</b> (classic statistical ones such as WebRTC's, or small neural networks such as Silero) look at
+    the spectrum over time and output a probability that a frame contains speech. They ignore a steady fan much
+    better. They still answer "is there speech?", not "is this <i>my</i> speech?", so a TV or a conversation nearby
+    counts.</p>
+
+    <h3>The hard cases</h3>
+    <ul>
+      <li><b>Breaths</b> are broadband and close to the mic, so energy VADs fire on them and model VADs sometimes do.
+      A close-talking mic makes breaths loud.</li>
+      <li><b>Background speech</b> is the worst noise there is for a VAD and for a recognizer: it has exactly the
+      shape of the thing being detected.</li>
+      <li><b>Quiet word edges.</b> Onsets ("f", "th", "h") and trailing consonants are the quietest part of a word,
+      so a detector that waits for loud frames clips them. Systems keep a short <b>pre-roll</b> buffer (a few hundred
+      ms) so the start of the word survives.</li>
+    </ul>
+
+    <h3>Hangover and endpointing</h3>
+    <p><b>Hangover</b> keeps the detector in the speech state for a short time after the level drops, so the gaps
+    inside and between words do not split the utterance. <b>Endpointing</b> is the larger decision: after how much
+    silence is the turn over and the audio sent? A voice assistant that sends after a 1.5&nbsp;s pause feels patient
+    but slow; at 0.5&nbsp;s it answers quickly and cuts people off mid-thought. Long pauses while exercising or
+    thinking push it the wrong way.</p>
+
+    <h3>Why noise fools it</h3>
+    <p>The threshold has to sit above the noise floor. When the floor rises (the elliptical speeds up, the HVAC
+    kicks in) one of two things happens: the threshold stays put and noise counts as speech, so the endpoint never
+    fires and the app keeps listening; or the threshold adapts upward, and quiet speech (a whisper, the end of a
+    sentence) falls under it and is cut. Separation is the margin the detector has to work with: at 45&nbsp;dB there
+    is room for a clean threshold; at 10&nbsp;dB there is not, whatever the algorithm.</p>
+    <p>Impulsive noise adds false starts: a dropped weight is short and broadband, which an energy detector reads as
+    a syllable. Upstream noise suppression makes the reverse error, covered in the next section.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section id="codecs" data-mode="regular">
+  <div class="head">
+    <h2>4. Codecs and the mic path</h2>
+    <div class="seg"><button type="button" data-set="eli5">ELI5</button><button type="button" data-set="regular">Regular</button></div>
+  </div>
+
+  <div class="eli5">
+    <p>Sound from a wired or USB mic goes straight into the computer, untouched. Sound from Bluetooth earbuds is
+    squeezed small to fit through the wireless link, a bit like a phone call, and the earbuds also try to scrub out
+    noise before sending it.</p>
+    <p>Squeezing throws away the high, hissy sounds that tell "s" from "f". Scrubbing sometimes throws away the
+    start of a word because it looked like noise. A person can still understand you; a computer listening for short
+    words often cannot.</p>
+  </div>
+
+  <div class="regular">
+    <h3>Bluetooth: one link, two modes</h3>
+    <p>Listening to music, earbuds use a one-way, high-quality profile (A2DP; Apple devices send AAC). The moment an
+    app opens the earbuds' microphone, the link switches to the two-way hands-free profile (HFP), and both
+    directions drop to a speech codec:</p>
+    <div class="table-scroll"><table>
+      <tr><th>HFP codec</th><th>Sample rate</th><th>Keeps up to</th><th>Calls it</th></tr>
+      <tr><td>CVSD</td><td class="num">8 kHz</td><td class="num">≈ 3.4–4 kHz</td><td>Narrowband, telephone quality; the mandatory fallback</td></tr>
+      <tr><td>mSBC</td><td class="num">16 kHz</td><td class="num">≈ 7–8 kHz</td><td>Wideband speech (HFP 1.6)</td></tr>
+      <tr><td>LC3-SWB</td><td class="num">32 kHz</td><td class="num">≈ 14–16 kHz</td><td>Super-wideband (HFP 1.9); needs both ends to support it</td></tr>
+    </table></div>
+    <p>Which codec runs is negotiated between the phone or Mac and the earbuds, and a link can fall back to CVSD. That
+    is why Audio Debugger's mic buttons warn that opening a Bluetooth mic switches the headset to call mode: the
+    music you are playing drops to call quality too.</p>
+    <p>A USB mic sends uncompressed PCM at 44.1 or 48&nbsp;kHz: no codec, no Bluetooth, and usually no processing
+    beyond the mic's own gain. It is the reference to compare against.</p>
+
+    <h3>What band limits do to recognition</h3>
+    <p>A recognizer trained on 16&nbsp;kHz audio expects energy up to 8&nbsp;kHz. Narrowband audio upsampled to
+    16&nbsp;kHz arrives with an empty top half: sibilants and fricatives are gone or folded together, and accuracy
+    drops on exactly the short words where one consonant decides the answer ("six"/"fix", "three"/"free"). The
+    spectrogram shows this directly: on a narrowband path everything above about 4&nbsp;kHz is black.</p>
+
+    <h3>What noise suppression does to VAD and ASR</h3>
+    <p>Headset DSP suppresses noise before the codec, and phones and browsers can add their own suppression and
+    automatic gain on top. Suppressors are tuned for continuous conversation: they adapt to what looks steady and
+    turn down what looks like a transient. A short word out of silence looks like a transient, so its onset is
+    turned down until the suppressor decides it is speech. The VAD downstream then sees a clipped word, and the
+    recognizer sees a fragment. Recognizers are mostly trained on raw noisy audio, so aggressive suppression in
+    front of them often fails to help and can make errors worse, while making the floor, and the separation reading,
+    look excellent.</p>
+    <p>The case study <a href="https://idvorkin-ai-tools.github.io/airpods-mic-explainer/">When AirPods Eat Your
+    Words</a> shows this with real recordings: the same words through AirPods arrive as 0.3&nbsp;s slivers and
+    through a USB mic arrive whole.</p>
+
+    <h3>The iPhone with AirPods</h3>
+    <p>On the iPhone the path is: the AirPods' mics, their own beamforming and noise suppression, a call-mode voice
+    codec over Bluetooth, iOS's audio session, then the app. Which codec depends on the model: developers have
+    reported recent AirPods using Apple's AAC-ELD at 24&nbsp;kHz for calls, where older ones use HFP's mSBC or
+    CVSD, and Apple does not document it. Whatever the codec, opening the mic puts the AirPods in call mode, and
+    the iPhone's audio session typically drops to 16&nbsp;kHz while it lasts.</p>
+    <p>Audio Debugger lists AirPods' mic last and never opens it by itself, so your music keeps playing in full
+    quality. It asks iOS for <code>.measurement</code> mode, which turns off the system's own voice processing and
+    automatic gain, so what the app shows is what arrived over Bluetooth. It cannot switch off the processing inside
+    the AirPods, which happens before the radio. To see what that path costs, record the same sentence on the
+    iPhone's built-in mic and on the AirPods and compare them in replay: look for an empty top of the spectrogram
+    and softened word starts. The <a href="https://idvorkin-ai-tools.github.io/airpods-mic-explainer/">AirPods
+    case study</a> shows the result on a Mac, with real recordings.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Part of <a href="https://github.com/idvorkin/audio-debugger">Audio Debugger</a>. In the app, H opens this page
+  and S saves the last 20 seconds with these measurements beside it. Codec figures are from the Bluetooth
+  Hands-Free Profile versions named; the separation bands are the app's rule of thumb, not a standard.</p>
+</footer>
+</div>
+
+<script>
+(function () {
+  // Explanation level: per section, plus one control that sets them all. Remembered per browser when storage works.
+  var KEY = "noise-explainer-mode";
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section[data-mode]"));
+  function paint() {
+    document.querySelectorAll(".seg").forEach(function (seg) {
+      var all = seg.hasAttribute("data-all");
+      var sec = seg.closest("section");
+      var mode = all ? (sections.every(function (s) { return s.dataset.mode === sections[0].dataset.mode; }) ? sections[0].dataset.mode : "") : sec.dataset.mode;
+      seg.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.set === mode)); });
+    });
+  }
+  function setAll(mode) {
+    sections.forEach(function (s) { s.dataset.mode = mode; });
+    try { localStorage.setItem(KEY, mode); } catch (e) {}
+    paint();
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest(".seg button");
+    if (!b) return;
+    var seg = b.closest(".seg");
+    if (seg.hasAttribute("data-all")) { setAll(b.dataset.set); return; }
+    b.closest("section").dataset.mode = b.dataset.set;
+    paint();
+  });
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  setAll(saved === "eli5" ? "eli5" : "regular");
+
+  // Diagrams: drawn from numbers, synthetic, no recorded audio.
+  var NS = "http://www.w3.org/2000/svg";
+  function el(parent, name, attrs, text) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  }
+  var css = function (v) { return "var(" + v + ")"; };
+
+  // 1. Frequency map, 20 Hz to 16 kHz, log axis.
+  (function () {
+    var g = document.getElementById("freqmap"), L = 20, R = 620;
+    var x = function (f) { return L + (Math.log10(f) - Math.log10(20)) / (Math.log10(16000) - Math.log10(20)) * (R - L); };
+    [50, 100, 200, 500, 1000, 2000, 5000, 10000].forEach(function (f) {
+      el(g, "line", { x1: x(f), x2: x(f), y1: 8, y2: 150, stroke: css("--line") });
+      el(g, "text", { x: x(f), y: 196, "font-size": 11, "text-anchor": "middle", class: "muted" }, f >= 1000 ? f / 1000 + "k" : f);
+    });
+    var bands = [
+      [85, 255, "pitch", "--voice", 14], [300, 2500, "formants (vowels)", "--voice", 34], [2000, 8000, "consonants, sibilants", "--voice", 54],
+      [50, 360, "hum + harmonics", "--noise", 80], [40, 500, "fans, HVAC", "--noise", 100]
+    ];
+    // A label goes right of its bar, or left of it when the bar reaches the right edge.
+    function label(lo, hi, y, text, cls) {
+      var right = x(hi) < 470;
+      el(g, "text", { x: right ? x(hi) + 6 : x(lo) - 6, y: y, "font-size": 11, "text-anchor": right ? "start" : "end", class: cls || "" }, text);
+    }
+    bands.forEach(function (b) {
+      el(g, "rect", { x: x(b[0]), y: b[4], width: x(b[1]) - x(b[0]), height: 14, rx: 3, fill: css(b[3]), opacity: 0.85 });
+      label(b[0], b[1], b[4] + 11, b[2]);
+    });
+    var paths = [[300, 3400, "telephone, CVSD (8 kHz)", 122], [50, 8000, "mSBC, speech ASR (16 kHz)", 140], [50, 16000, "LC3-SWB to 16 kHz; USB at 48 kHz goes on to 24", 158]];
+    paths.forEach(function (p) {
+      el(g, "rect", { x: x(p[0]), y: p[3], width: x(p[1]) - x(p[0]), height: 14, rx: 2, fill: "none", stroke: css("--accent"), "stroke-width": 1.5 });
+      if (p[1] < 4000) label(p[0], p[1], p[3] + 11, p[2], "muted");
+      else el(g, "text", { x: x(p[1]) - 6, y: p[3] + 11, "font-size": 11, "text-anchor": "end", class: "muted" }, p[2]);
+    });
+  })();
+
+  // 2. The dBFS ladder with the gym example and the separation bands.
+  (function () {
+    var g = document.getElementById("ladder"), L = 30, R = 610;
+    var x = function (db) { return L + (db + 80) / 80 * (R - L); };
+    el(g, "line", { x1: L, x2: R, y1: 60, y2: 60, stroke: css("--muted") });
+    for (var db = -80; db <= 0; db += 10) {
+      el(g, "line", { x1: x(db), x2: x(db), y1: 55, y2: 65, stroke: css("--muted") });
+      el(g, "text", { x: x(db), y: 80, "font-size": 11, "text-anchor": "middle", class: "muted" }, db);
+    }
+    [[-62, "floor -62"], [-50, "median -50"], [-17, "speech -17"]].forEach(function (m, i) {
+      el(g, "circle", { cx: x(m[0]), cy: 60, r: 6, fill: css(i === 2 ? "--voice" : "--noise") });
+      el(g, "text", { x: x(m[0]), y: 40 - (i === 1 ? 14 : 0), "font-size": 12, "text-anchor": "middle" }, m[1]);
+    });
+    el(g, "line", { x1: x(-62), x2: x(-17), y1: 100, y2: 100, stroke: css("--good"), "stroke-width": 3 });
+    el(g, "text", { x: (x(-62) + x(-17)) / 2, y: 118, "font-size": 12, "text-anchor": "middle" }, "speech − floor ≈ 45 dB: GOOD");
+    // The bands as a legend: no speech under 6, poor 6–15, ok 15–30, good 30 and up.
+    [["no speech < 6", "--noise"], ["poor 6–15", "--poor"], ["ok 15–30", "--ok"], ["good 30+", "--good"]].forEach(function (b, i) {
+      var lx = L + i * 145;
+      el(g, "rect", { x: lx, y: 140, width: 14, height: 14, rx: 2, fill: css(b[1]) });
+      el(g, "text", { x: lx + 20, y: 152, "font-size": 12 }, b[0] + " dB");
+    });
+  })();
+
+  // 3. VAD timeline: a synthetic level trace with a threshold, speech regions, pre-roll, hangover and endpoint.
+  (function () {
+    var g = document.getElementById("vadplot"), L = 20, R = 620, top = 20, bottom = 130;
+    var y = function (db) { return top + (-db - 10) / 60 * (bottom - top); };
+    var words = [[0.8, 1.4], [1.55, 2.2], [3.0, 3.7], [6.2, 6.9]];
+    var pts = [], T = 8;
+    for (var i = 0; i <= 400; i++) {
+      var t = i / 400 * T, lvl = -60 + 3 * Math.sin(i * 1.7) + 2 * Math.sin(i * 0.37);
+      words.forEach(function (w) { if (t > w[0] && t < w[1]) lvl = Math.max(lvl, -22 - 8 * Math.abs(Math.sin((t - w[0]) * 9)) - 10 * Math.pow((t - (w[0] + w[1]) / 2) / (w[1] - w[0]) * 2, 2)); });
+      if (Math.abs(t - 7.6) < 0.08) lvl = -30;  // a clank
+      pts.push((L + t / T * (R - L)).toFixed(1) + "," + y(lvl).toFixed(1));
+    }
+    el(g, "polyline", { points: pts.join(" "), fill: "none", stroke: css("--noise"), "stroke-width": 1.2 });
+    el(g, "line", { x1: L, x2: R, y1: y(-45), y2: y(-45), stroke: css("--accent"), "stroke-dasharray": "4 3" });
+    el(g, "text", { x: R, y: y(-45) - 4, "font-size": 11, "text-anchor": "end", fill: css("--accent") }, "threshold");
+    var X = function (t) { return L + t / T * (R - L); };
+    [[0.65, 2.5], [2.85, 4.0], [6.05, 7.2]].forEach(function (s) {
+      el(g, "rect", { x: X(s[0]), y: 150, width: X(s[1]) - X(s[0]), height: 12, rx: 2, fill: css("--voice"), opacity: 0.8 });
+    });
+    el(g, "rect", { x: X(7.55), y: 150, width: X(7.95) - X(7.55), height: 12, rx: 2, fill: css("--poor"), opacity: 0.8 });
+    el(g, "text", { x: R, y: 178, "font-size": 11, "text-anchor": "end", fill: css("--poor") }, "clank: false start");
+    el(g, "text", { x: X(0.65), y: 178, "font-size": 11, class: "muted" }, "pre-roll");
+    el(g, "text", { x: X(1.9), y: 192, "font-size": 11, class: "muted" }, "hangover bridges the gap");
+    el(g, "line", { x1: X(5.5), x2: X(5.5), y1: top, y2: 165, stroke: css("--good"), "stroke-width": 2 });
+    el(g, "text", { x: X(5.5) + 4, y: top + 10, "font-size": 11, fill: css("--good") }, "endpoint: 1.5 s of quiet");
+    el(g, "text", { x: L, y: 146, "font-size": 11, class: "muted" }, "detected as speech:");
+  })();
+})();
+</script>
+</body>
+</html>

@@ -57,33 +57,82 @@ struct MicBar: View {
     }
 }
 
-/// The readings in one line, or two when the screen is narrow.
+/// The readings in one line, or two when the screen is narrow, and the noise readout under them.
 struct StatusLine: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        let floor = model.noiseFloorDB.map { String(format: "%.1f", $0) } ?? "—"
         let level = Text(String(format: "RMS %6.1f dB   peak %6.1f dB", model.rmsDB, model.peakDB))
-        let floorText = Text("floor \(floor) dB")
         let dominant = Text(String(format: "dominant %6.0f Hz", model.dominantHz))
         let pitch = Text("pitch \(noteName(model.pitchHz))")
         let clips = Text("clips \(model.clips)").foregroundStyle(model.clips > 0 ? red : Color(white: 0.85))
         let hint = Text(model.hint.rawValue).foregroundStyle(model.hint == .good ? green : amber)
+        VStack(alignment: .leading, spacing: 4) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) {
+                    level; dominant; pitch; clips; hint
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    level
+                    HStack(spacing: 12) {
+                        dominant; pitch; clips
+                    }
+                    hint
+                }
+            }
+            NoiseReadout()
+        }
+        .font(.system(size: 13, design: .monospaced))
+    }
+}
+
+/// "How much background noise is there?" over the last 20 s: the floor (the gaps between words), the speech level,
+/// the separation between them with a good / ok / poor band, and the explainer (docs/noise.html) one key away.
+struct NoiseReadout: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let s = model.levels
+        let floor = Text("noise floor \(s.map { String(format: "%.0f", $0.floorDB) } ?? "—") dB")
+        let speech = Text("speech \(s.map { String(format: "%.0f", $0.speechDB) } ?? "—") dB")
+        let separation = s.map { s in
+            let band = s.separation
+            let color: Color =
+                switch band {
+                case .good: green
+                case .ok: amber
+                case .poor: red
+                case .noSpeech: Color(white: 0.6)
+                }
+            let label = Text(band == .noSpeech ? band.rawValue : band.rawValue.uppercased()).bold()
+                .foregroundStyle(color)
+            return Text("speech − floor \(String(format: "%.0f", s.separationDB)) dB  \(label)")
+        }
+        let help = Button(keyed("What do these mean?", "H")) { model.openNoiseGuide() }
+            .help("Noise floor, speech level and separation, explained (docs/noise.html)")
+        let save = Button(keyed("Save sample", "S")) { model.saveSample() }
+            .help("Save the last 20 s as a WAV, with the measured levels as JSON beside it")
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 14) {
-                level; floorText; dominant; pitch; clips; hint
+                floor; speech; separation; help; save; saved
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 12) {
-                    level; floorText
+                    floor; speech
                 }
+                separation
                 HStack(spacing: 12) {
-                    dominant; pitch; clips
+                    help; save
                 }
-                hint
+                saved
             }
         }
-        .font(.system(size: 13, design: .monospaced))
+    }
+
+    @ViewBuilder private var saved: some View {
+        if let name = model.sampleSaved {
+            Text("saved samples/\(name)").foregroundStyle(green)
+        }
     }
 }
 

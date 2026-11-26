@@ -48,6 +48,8 @@ final class AppModel {
     private(set) var peakDB: Float = -200
     private(set) var heldPeakDB: Float = -120
     private(set) var noiseFloorDB: Float?
+    /// Floor, speech level and their separation over the last 20 s (AudioCore/NoiseMetrics.swift).
+    private(set) var levels: LevelSummary?
     private(set) var dominantHz: Float = 0
     private(set) var pitchHz: Float = 0
     private(set) var clips = 0
@@ -74,6 +76,8 @@ final class AppModel {
     var bugNote = ""
     var bugSaved: String?
     var showWhatsNew = false
+    /// The folder of the sample just saved (Sample.swift), shown for a few seconds.
+    var sampleSaved: String?
 
     let capture = Capture()
     let player = Player()
@@ -275,6 +279,7 @@ final class AppModel {
         // Not until the scope window is real audio: its zero padding is not the room.
         if snap.captured >= scopeSize { floor.update(rmsDB: rmsDB) }
         noiseFloorDB = floor.db
+        levels = floor.summary
         clips = snap.clips
 
         let db = analyzer.decibelSpectrum(window)
@@ -298,10 +303,11 @@ final class AppModel {
                 "level",
                 [
                     "mic": mic?.name as Any, "rms": rmsDB, "peak": peakDB, "floor": noiseFloorDB as Any,
+                    "speech": levels?.speechDB as Any, "separation": levels?.separationDB as Any,
                     "pitch": pitchHz, "clips": clips, "captured": snap.captured,
                 ])
             Log.level.info(
-                "\(self.mic?.name ?? "-", privacy: .public) rms \(self.rmsDB, format: .fixed(precision: 1), privacy: .public) peak \(self.peakDB, format: .fixed(precision: 1), privacy: .public) floor \(self.noiseFloorDB ?? 0, format: .fixed(precision: 1), privacy: .public) pitch \(noteName(self.pitchHz), privacy: .public) clips \(self.clips, privacy: .public) captured \(snap.captured, privacy: .public)"
+                "\(self.mic?.name ?? "-", privacy: .public) rms \(self.rmsDB, format: .fixed(precision: 1), privacy: .public) peak \(self.peakDB, format: .fixed(precision: 1), privacy: .public) floor \(self.noiseFloorDB ?? 0, format: .fixed(precision: 1), privacy: .public) speech \(self.levels?.speechDB ?? 0, format: .fixed(precision: 1), privacy: .public) separation \(self.levels?.separationDB ?? 0, format: .fixed(precision: 1), privacy: .public) pitch \(noteName(self.pitchHz), privacy: .public) clips \(self.clips, privacy: .public) captured \(snap.captured, privacy: .public)"
             )
         }
     }

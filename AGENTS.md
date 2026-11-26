@@ -56,7 +56,8 @@ AVAudioEngine input tap; no aggregate device on iOS, and it runs in the backgrou
 | mics | `Mics`, `AudioCore/Mic` | Core Audio device list (input channels, name, UID, transport), hot-plug listener; `Mic.choose`: the remembered mic, else USB, else built-in, Bluetooth last (opening an AirPods mic drops them into call-quality mode, music and all) |
 | mic chain | `AudioCore/MicController` | open, fallback, retry: newest pick wins, 2 s reopen throttle, one 3 s retry pending, permission guard. Time comes in as a value; `AppModel.perform` carries out its effects. Host tests: `MicControllerTests` |
 | capture | `Capture` | `AVCaptureSession` on the mic by UID, mono float32 at the device rate, into a 20 s `RingBuffer` and a 4096-sample scope window under one lock. **Not AVAudioEngine**: on macOS its input runs through a private aggregate device, and on an input-only USB mic that delivered only zeros |
-| readings | `AppModel.tick` | 30 Hz on the main thread: RMS, peak, held peak, noise floor, FFT spectrum, pitch, a spectrogram column. Microseconds with vDSP |
+| readings | `AppModel.tick` | 30 Hz on the main thread: RMS, peak, held peak, noise floor and speech level (`AudioCore/NoiseMetrics`, percentiles of the last 20 s), FFT spectrum, pitch, a spectrogram column. Microseconds with vDSP |
+| samples | `Sample` | S: the last 20 s, raw, to `samples/<time>/sample.wav` with a `sample.json` of its measured levels (50 ms frames); H opens `docs/noise.html`, which `just app` bundles |
 | replay | `Player` | its own `AVAudioEngine` on the default output, an `AVAudioSourceNode` pulling the clip through `Transport` on the render thread; mono into the main mixer feeds both ears. Pause, seek and processing swaps are state changes |
 | processing | `AudioCore/Processing` | off the main thread, cached per toggle combination: `denoise` (spectral gating, profile from the quietest 20 % of frames inside the clip) and `voiceBoost` (90 Hz–7.5 kHz band, loud-frame leveling to -16 dBFS, tanh soft limit) |
 
@@ -82,7 +83,10 @@ bug-kit listener reads that root as a local Mac app (`mac_dir` in `~/.config/bug
   silent (digital zeros) and dropped off the bus by itself. Compare against `just selftest 6 MacBook`.
 - **Keyboard first.** Every action has a key (see `Keys` and the stories); the mouse is never required.
 - **Edit files with the Read, Edit and Write tools**, not sed or Python in the shell. Never `git add -A`.
-- **Audio stays on this Mac.** Nothing is uploaded; the only audio written to disk is a bug report's WAV.
+- **Audio stays on this Mac.** Nothing is uploaded; audio is written to disk only when asked: a bug report's WAV
+  and a saved sample (S).
+- **`NoiseMetrics.swift` stays free of Accelerate**, so its maths (and `decibels`) builds and tests on Linux too.
+- **`docs/noise.html` quotes the separation bands** (`Separation` in NoiseMetrics): change them together.
 - **One no-mistakes run per train** (Igor, 2026-10-11, `~/tmp/agent/locks/PIPELINE-RULES.md`), always through
   `~/gits/mac-driver/bin/pipeline-slot`. Finish the whole stack before the first push to the gate. Don't push while a
   run is in flight, unless review or test asked for that fix. Never restart the no-mistakes daemon or reboot while

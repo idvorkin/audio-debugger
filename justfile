@@ -41,6 +41,8 @@ app:
     cp "$(swift build -c release --show-bin-path)/AudioDebugger" "{{app}}/Contents/MacOS/"
     cp Support/Info.plist "{{app}}/Contents/"
     cp Support/AppIcon.icns "{{app}}/Contents/Resources/"
+    # H opens the noise explainer from the bundle, so it works offline.
+    cp docs/noise.html "{{app}}/Contents/Resources/"
     git describe --always --dirty > "{{app}}/Contents/Resources/commit.txt" 2>/dev/null || echo none > "{{app}}/Contents/Resources/commit.txt"
     # BugKit's About reads the build's commit and the repository from Info.plist.
     /usr/libexec/PlistBuddy -c "Add :BugKitCommit string $(git describe --always --dirty --abbrev=40 --exclude='*' 2>/dev/null || echo unknown)" \

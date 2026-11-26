@@ -16,8 +16,15 @@ A native macOS app for finding out how a microphone actually sounds: see the sig
 - **Spectrum** (log frequency, dBFS, with a decaying peak line) and a **0–8 kHz spectrogram** for hum, hiss and
   the shape of your voice.
 - **Level meter**: RMS and peak, the held peak, guides at -18 and -6 dBFS.
-- **Status line**: RMS, peak, noise floor, dominant frequency, pitch as a note (`A2 +3¢`), clipped samples, and a
-  gain hint ("too quiet — turn gain up").
+- **Status line**: RMS, peak, dominant frequency, pitch as a note (`A2 +3¢`), clipped samples, and a gain hint
+  ("too quiet — turn gain up").
+- **Noise readout**: over the last 20 s, the noise floor (the gaps between words), the speech level, and the
+  separation between them with a GOOD / OK / POOR band (`noise floor -62 dB  speech -17 dB  speech − floor 45 dB
+  GOOD`). **H** opens [Reading background noise](docs/noise.html), which explains these numbers, where the voice
+  sits in frequency, voice activity detection and Bluetooth codecs, each in an ELI5 and a regular version
+  (download the file to read it offline; the Mac app bundles it).
+- **Save sample (S)**: the last 20 s as a WAV, raw, with a JSON sidecar of its measured floor, speech level,
+  separation, peak and clipped samples, under `~/Library/Application Support/AudioDebugger/samples/`.
 
 ## Hearing it back
 

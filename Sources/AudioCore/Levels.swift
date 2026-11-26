@@ -1,7 +1,6 @@
 import Accelerate
 
-/// Decibels relative to full scale; silence floors at -200 dB instead of -infinity.
-public func decibels(_ amplitude: Float) -> Float { 20 * log10(max(amplitude, 1e-10)) }
+// `decibels`, the noise floor and the speech level are in NoiseMetrics.swift.
 
 public func rms(_ x: ArraySlice<Float>) -> Float {
     x.isEmpty ? 0 : x.withUnsafeBufferPointer { vDSP.rootMeanSquare($0) }
@@ -25,24 +24,6 @@ public enum GainHint: String, Sendable {
         } else {
             self = .good
         }
-    }
-}
-
-/// The noise floor: the 10th percentile of the RMS readings over the last `window` of them (5 s at 30 Hz), ignoring
-/// digital silence. A running minimum latched onto the near-silent buffers a mic sends while it starts (-110 dB on
-/// a mic whose room floor is -45).
-public struct NoiseFloor: Sendable {
-    public let window: Int
-    private var readings: [Float] = []
-    public private(set) var db: Float?
-
-    public init(window: Int = 150) { self.window = window }
-
-    public mutating func update(rmsDB: Float) {
-        guard rmsDB > -150 else { return }  // digital silence: no signal, not a quiet room
-        readings.append(rmsDB)
-        if readings.count > window { readings.removeFirst(readings.count - window) }
-        db = readings.sorted()[readings.count / 10]
     }
 }
 
