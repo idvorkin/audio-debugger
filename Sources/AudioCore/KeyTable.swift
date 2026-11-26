@@ -56,7 +56,8 @@ public enum KeyTable {
                 + "turn, ← / → seconds, Return starts (Esc stops)"),
         KeyEntry("O", "Mac: replay on the next output (system default, then each speaker or headphone)"),
         KeyEntry("⇥", "Capture set: back to the row played before, at the same place (A/B)"),
-        KeyEntry("⌘O / ⌘R", "Mac: open a capture set / reveal it in Finder"),
+        KeyEntry("⌘O / ⌘R", "Mac: open a capture set / reveal the open set, else the last sample, in Finder"),
+        KeyEntry("⇧⌘S", "Share the open capture set, else the last sample (AirDrop, Messages, Mail, Files…)"),
         KeyEntry(
             "H", "Open the noise explainer (what floor, speech and separation mean)", [.init("h", "Noise Explainer")]),
         KeyEntry("?", "Show every key", [.init("?", "Show Every Key")]),

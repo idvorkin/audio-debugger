@@ -109,10 +109,19 @@ later, or hand the clip to another tool.
   - Given the bug-kit listener reads the app's folder
   - When I save a sample
   - Then nothing is written under `bugs/`, so no bead is filed
+- Scenario: Share it (ad-ejj)
+  - Given I saved a sample on the iPhone
+  - When I tap Share sample
+  - Then the system share sheet offers `sample.wav` and `sample.json` (AirDrop to the Mac, Messages, Files…)
+- Scenario: Share or reveal on the Mac (ad-ejj)
+  - Given I saved a sample, or a capture set is open (story 019)
+  - When I press ⇧⌘S, or ⌘R
+  - Then the share menu offers the set's folder, else the sample's two files; ⌘R shows them in Finder
 
 **Notes**: The folder is `SessionLog.root` (`~/Library/Application Support/AudioDebugger/` on the Mac, the app's
-Documents on iOS; `selftest/` inside it for scripted runs). On iOS the folder is not yet visible in the Files app.
-Nothing is uploaded.
+Documents on iOS; `selftest/` inside it for scripted runs). On iOS the folder is not yet visible in the Files app, so
+Share is the way off the phone. Nothing is uploaded: sharing happens only when Igor asks, through the system's own
+share sheet.
 
 ## 020 — Choose the speakers apart from the mic
 

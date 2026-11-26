@@ -85,7 +85,8 @@ bug-kit listener reads that root as a local Mac app (`mac_dir` in `~/.config/bug
 - **Keyboard first.** Every action has a key (see `Keys` and the stories); the mouse is never required.
 - **Edit files with the Read, Edit and Write tools**, not sed or Python in the shell. Never `git add -A`.
 - **Audio stays on this Mac.** Nothing is uploaded; audio is written to disk only when asked: a bug report's WAV
-  and a saved sample (S), and a capture set (M / ⇧M, `captures/`).
+  and a saved sample (S), and a capture set (M / ⇧M, `captures/`). It leaves the device only when Igor shares it
+  himself (⇧⌘S or the share sheet: the system's AirDrop, Messages, Mail…); the app never sends anything on its own.
 - **`NoiseMetrics.swift` stays free of Accelerate**, so its maths (and `decibels`) builds and tests on Linux too.
 - **`docs/noise.html` quotes the separation bands** (`Separation` in NoiseMetrics): change them together.
 - **One no-mistakes run per train** (Igor, 2026-10-11, `~/tmp/agent/locks/PIPELINE-RULES.md`), always through

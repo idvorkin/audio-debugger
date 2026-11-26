@@ -133,7 +133,56 @@ struct NoiseReadout: View {
         if let name = model.sampleSaved {
             Text("saved samples/\(name)").foregroundStyle(green)
         }
+        ShareSaved()
     }
+}
+
+/// Story 013: share what was saved, only when asked: the open capture set's folder (story 019) if there is one, else
+/// the last sample's WAV and its JSON. The system share sheet (AirDrop, Messages, Mail, Files…) on iPhone and iPad;
+/// ⇧⌘S and Reveal in Finder (⌘R) on the Mac.
+struct ShareSaved: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let (what, items) = model.shareItems
+        if !items.isEmpty {
+            HStack(spacing: 8) {
+                ShareLink(items: items) {
+                    #if os(macOS)
+                    Text(keyed("Share \(what)", "⇧⌘S"))
+                    #else
+                    Label("Share \(what)", systemImage: "square.and.arrow.up")
+                    #endif
+                }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+                #if os(macOS)
+                Button(keyed("Reveal", "⌘R")) { model.revealSaved() }
+                #endif
+            }
+            .fixedSize()
+        }
+    }
+}
+
+extension AppModel {
+    /// What Share sends: the open capture set's folder, else the last sample's files.
+    var shareItems: (what: String, items: [URL]) {
+        #if os(macOS)
+        if comparison != nil, let folder = comparisonFolder { return ("capture set", [folder]) }
+        #endif
+        guard let folder = lastSample else { return ("", []) }
+        return ("sample", ["sample.wav", "sample.json"].map { folder.appendingPathComponent($0) })
+    }
+
+    #if os(macOS)
+    /// ⌘R: the open capture set, else the last sample, in Finder.
+    func revealSaved() {
+        let items = shareItems.items
+        guard !items.isEmpty else { return }
+        NSWorkspace.shared.activateFileViewerSelecting(items)
+        SessionLog.shared.event("reveal", ["what": shareItems.what])
+    }
+    #endif
 }
 
 struct Plot<Content: View>: View {

@@ -51,6 +51,7 @@ struct ContentView: View {
             }
             if model.capturePlan != nil {
                 CapturePicker()  // stories 017/018: M's picker, until Return or Esc
+                Spacer(minLength: 0)  // keeps the window's rows at the top while the panels are away
             } else if model.comparison != nil {
                 CompareView()  // story 019: a capture set takes the panels' place until Esc
             } else {

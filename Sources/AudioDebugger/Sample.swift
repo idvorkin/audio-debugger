@@ -32,6 +32,7 @@ extension AppModel {
                     SessionLog.shared.event("sample_saved", sidecar.merging(["folder": name]) { a, _ in a })
                     Log.app.info("saved sample samples/\(name, privacy: .public)")
                     self.sampleSaved = name
+                    self.lastSample = folder
                     #if os(macOS)
                     if !Launch.scripted { NSWorkspace.shared.activateFileViewerSelecting([wav]) }
                     #endif

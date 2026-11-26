@@ -25,10 +25,14 @@ A native macOS app for finding out how a microphone actually sounds: see the sig
   (download the file to read it offline; the Mac app bundles it).
 - **Save sample (S)**: the last 20 s as a WAV, raw, with a JSON sidecar of its measured floor, speech level,
   separation, peak and clipped samples, under `~/Library/Application Support/AudioDebugger/samples/`.
-- **Capture every mic (M, Mac)**: 10 s from every mic at once (Bluetooth and iPhone mics are left alone, so AirPods
-  keep their music quality) into one capture set under `captures/`: a raw WAV and a sidecar with a 0–100 score per
-  mic, and `manifest.json` that lines the streams up. **⇧M** takes each mic in turn, all of them, 6 s each, with a
-  phrase to say. Esc stops.
+- **Share (⇧⌘S) and Reveal (⌘R, Mac)**: the last sample (or the open capture set) through the system share sheet:
+  AirDrop, Messages, Mail, Files. Only when you ask; the app never sends anything on its own.
+- **Capture mics (M, Mac)**: a picker with a switch per mic (Bluetooth and iPhone mics start off, since opening one
+  puts AirPods in call mode or wakes the phone), at once or in turn, and the seconds. Return records one capture set
+  under `captures/`: a raw WAV and a sidecar with a 0–100 score per mic, and `manifest.json` that lines the streams
+  up. In turn (T, or ⇧M) records each mic after the other with a phrase to say. Esc stops.
+
+![Capture picker: a switch per mic, at once or in turn, seconds](docs/picker.png)
 - **Compare a capture set (Mac)**: the set just taken opens by itself, or any earlier one with ⌘O. Mics are ranked best
   to worst with the numbers behind the score, their waveforms lined up in time and their spectra overlaid; 1–9 play a
   mic as recorded, and ⇥ flips back to the one before at the same place.

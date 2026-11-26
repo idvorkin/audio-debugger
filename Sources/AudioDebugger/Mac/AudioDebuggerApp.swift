@@ -43,8 +43,8 @@ struct DebuggerCommands: Commands {
         CommandGroup(replacing: .newItem) {
             // Story 019.
             Button("Open Capture Set…") { model.chooseComparison() }.keyboardShortcut("o")
-            Button("Reveal Capture Set in Finder") { model.revealComparison() }.keyboardShortcut("r")
-                .disabled(model.comparison == nil)
+            Button("Reveal in Finder") { model.revealSaved() }.keyboardShortcut("r")  // the set, else the sample
+                .disabled(model.shareItems.items.isEmpty)
         }
         CommandGroup(replacing: .help) {
             Button("Report a Bug…") { model.showBugReport = true }.keyboardShortcut("i")

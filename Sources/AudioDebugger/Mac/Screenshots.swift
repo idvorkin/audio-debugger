@@ -34,6 +34,12 @@ enum Screenshots {
             await wait(2)
             model.cancel()
             model.cancel()
+            // Story 021: M's picker (opened directly: a scripted M skips it). Esc closes it; nothing opens.
+            model.openCapturePicker(.together)
+            await wait(1)
+            mark("picker", window, dir)
+            await wait(2)
+            model.cancel()
             // Story 016: the key sheet. It is a window attached to the main one, which `screencapture -l` can't grab
             // while the app is in the background ("could not create image from window"), so the app draws the sheet's
             // table to keys.png itself and the recipe copies it.

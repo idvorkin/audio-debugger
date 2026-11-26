@@ -100,6 +100,12 @@ enum SelfTest {
             Log.selftest.info(
                 "sample \(model.sampleSaved ?? "none", privacy: .public): \(sampleFiles.sorted().joined(separator: " "), privacy: .public)"
             )
+            // Story 013 (ad-ejj): what Share and Reveal would hand over, and that it is on disk.
+            let share = model.shareItems
+            let present = share.items.allSatisfy { FileManager.default.fileExists(atPath: $0.path) }
+            Log.selftest.info(
+                "share \(share.what, privacy: .public): \(share.items.map(\.lastPathComponent).joined(separator: " "), privacy: .public); all present \(present, privacy: .public)"
+            )
             #if os(macOS)
             await captureSets(model)
             await outputs(model)
