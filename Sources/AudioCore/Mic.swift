@@ -1,8 +1,9 @@
 /// An input as the platform reports it: a Core Audio device on the Mac, an audio-session input port on iOS. The list
 /// is each platform's (`Mics.all()` in Mac/Mics+Mac.swift and iOS/Mics+iOS.swift); the choice is shared.
 public struct Mic: Identifiable, Hashable, Sendable {
-    public enum Kind: String, Sendable {
-        case builtIn, usb, bluetooth, wired, other
+    /// `continuity`: an iPhone's mic offered to the Mac (Continuity); opening one wakes the phone.
+    public enum Kind: String, Codable, Sendable {
+        case builtIn, usb, bluetooth, wired, continuity, other
     }
 
     public let uid: String
