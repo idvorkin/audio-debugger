@@ -25,6 +25,7 @@ struct PhoneView: View {
                 }
             }
             InputLine()
+            OutputRow()  // story 020 (ad-8ev): the route, and the system picker to change it
             HStack {
                 ForEach([5, 10, 20], id: \.self) { s in
                     Button("▶ \(s)s") { model.replay(seconds: s) }.buttonStyle(.borderedProminent)

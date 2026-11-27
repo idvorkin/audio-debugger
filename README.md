@@ -55,7 +55,8 @@ replays 20 s). **?** lists every key; on an iPad, holding ⌘ does too, and ⌘.
 - Toggle either while it plays: it keeps your place, so you can A/B the difference.
 - **Output (O, Mac)**: replay plays on an output chosen apart from the mic (the system default, then each speaker or
   headphone in turn), named on the line under the input and remembered. An unplugged choice falls back to the system
-  default until it is back. The Mac's own sound settings are never changed.
+  default until it is back. The Mac's own sound settings are never changed. On an iPhone or iPad the line shows the
+  system's route, with its route picker to change it, in amber when a headset's open mic ties the output to it.
 
 On a hissy mic, the two together raise the voice above the hiss between words by more than 15 dB (a host test).
 
