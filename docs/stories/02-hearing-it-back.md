@@ -132,7 +132,7 @@ first, then every speaker and headphone), the choice is remembered, and a line u
 unplugged choice falls back to the system default and comes back when it is plugged in again.
 **Status**: Built in a57caac (ad-0er; host tests for the choice, fallback and stepping). Selftest: a muted replay on
 the built-in speakers, O, and the remembered choice restored. Two real outputs, headphones by ear, and unplugging
-the choice: to verify by Igor (run); this Mac had only its speakers. iOS output row (ad-8ev): built in 71a28c0,
+the choice: to verify by Igor (run); this Mac had only its speakers. iOS output row (ad-8ev): built in 94098f6,
 `just ios-build` passes; the simulator selftest not run (other sessions' simulators were booted); on the phone: to
 verify by Igor.
 **Why**: "audio debugger also lets select speakers independent of mic" (Igor, 2026-11-26): test the USB mic while
